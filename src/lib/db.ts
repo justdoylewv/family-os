@@ -69,6 +69,7 @@ export const useMembersStore = create<MembersStore>((set, get) => ({
       const seeded = loadLocal<Member[]>('members', [
         { id: makeId(), name: 'Mom', points: 0, avatar_color: 'bg-purple-500' },
         { id: makeId(), name: 'Dad', points: 0, avatar_color: 'bg-green-500' },
+        { id: makeId(), name: 'Otto', points: 0, avatar_color: 'bg-blue-500' },
       ]);
       set({ items: seeded, loaded: true });
       saveLocal('members', seeded);

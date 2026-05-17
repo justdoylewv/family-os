@@ -63,4 +63,6 @@ export interface Contact {
   sort_order?: number;
 }
 
-export type View = 'dashboard' | 'calendar' | 'groceries' | 'meals' | 'info' | 'chores';
+export type View = 'dashboard' | 'calendar' | 'groceries' | 'meals' | 'info' | 'chores' | 'members';
+
+export type CalendarViewMode = 'day' | 'week' | 'month';

@@ -1,9 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, Mic, Square } from 'lucide-react';
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  endOfWeek,
+  format,
+  isSameDay,
+  startOfWeek,
+  subDays,
+  subMonths,
+  subWeeks,
+} from 'date-fns';
 import { CATEGORY_COLORS, EVENT_CATEGORIES } from '../constants';
-import { useEventsStore, useMembersStore } from '../lib/db';
+import { useEventsStore, useMembersStore, todayLocalDate } from '../lib/db';
 import { authedFetch } from '../lib/auth';
-import type { EventCategory } from '../types';
+import type { CalendarViewMode, EventCategory } from '../types';
+
+const formatDate = (d: Date) => format(d, 'yyyy-MM-dd');
 
 interface NewEventDraft {
   title: string;
@@ -19,6 +33,7 @@ const CalendarView: React.FC = () => {
   const members = useMembersStore((s) => s.items);
 
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
   const [showModal, setShowModal] = useState(false);
   const [draft, setDraft] = useState<NewEventDraft>({
     title: '',
@@ -148,16 +163,28 @@ const CalendarView: React.FC = () => {
     }
   };
 
-  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-  const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+  const handlePrev = () => {
+    if (viewMode === 'day') setCurrentDate(subDays(currentDate, 1));
+    else if (viewMode === 'week') setCurrentDate(subWeeks(currentDate, 1));
+    else setCurrentDate(subMonths(currentDate, 1));
+  };
+  const handleNext = () => {
+    if (viewMode === 'day') setCurrentDate(addDays(currentDate, 1));
+    else if (viewMode === 'week') setCurrentDate(addWeeks(currentDate, 1));
+    else setCurrentDate(addMonths(currentDate, 1));
+  };
+  const handleToday = () => setCurrentDate(new Date());
 
-  const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
 
-  const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
-  const firstDay = getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth());
-  const monthName = currentDate.toLocaleString('default', { month: 'long' });
-  const year = currentDate.getFullYear();
+  const titleText =
+    viewMode === 'day'
+      ? format(currentDate, 'EEEE, MMMM d')
+      : viewMode === 'week'
+        ? `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d')}`
+        : format(currentDate, 'MMMM');
+  const titleSub = viewMode === 'month' ? format(currentDate, 'yyyy') : format(weekStart, 'yyyy');
 
   const handleAddEvent = async () => {
     if (!draft.title || !draft.date) return;
@@ -173,18 +200,37 @@ const CalendarView: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-6">
+      <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+        <div className="flex items-center gap-4 flex-wrap">
           <h2 className="text-3xl font-bold">
-            {monthName} <span className="text-gray-500">{year}</span>
+            {titleText} <span className="text-gray-500">{titleSub}</span>
           </h2>
           <div className="flex gap-2">
-            <button onClick={handlePrevMonth} className="p-3 glass rounded-xl hover:bg-white/10 transition-colors">
+            <button onClick={handlePrev} className="p-3 glass rounded-xl hover:bg-white/10 transition-colors" aria-label="Previous">
               <ChevronLeft size={24} />
             </button>
-            <button onClick={handleNextMonth} className="p-3 glass rounded-xl hover:bg-white/10 transition-colors">
+            <button
+              onClick={handleToday}
+              className="px-4 glass rounded-xl hover:bg-white/10 transition-colors text-sm font-bold uppercase tracking-widest text-gray-300"
+            >
+              Today
+            </button>
+            <button onClick={handleNext} className="p-3 glass rounded-xl hover:bg-white/10 transition-colors" aria-label="Next">
               <ChevronRight size={24} />
             </button>
+          </div>
+          <div className="flex bg-white/5 rounded-2xl p-1">
+            {(['day', 'week', 'month'] as CalendarViewMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-widest transition-all capitalize ${
+                  viewMode === mode ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {mode}
+              </button>
+            ))}
           </div>
         </div>
         <div className="flex gap-4">
@@ -217,48 +263,33 @@ const CalendarView: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-7 gap-px bg-white/10 rounded-3xl overflow-hidden border border-white/10">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div key={day} className="bg-white/5 p-4 text-center font-bold text-gray-400 text-xs uppercase tracking-widest">
-            {day}
-          </div>
-        ))}
-        {Array.from({ length: firstDay }).map((_, i) => (
-          <div key={`empty-${i}`} className="bg-white/5 min-h-[120px]"></div>
-        ))}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const day = i + 1;
-          const dateStr = `${year}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const dayEvents = events.filter((e) => e.date === dateStr);
+      {viewMode === 'month' && (
+        <MonthGrid
+          currentDate={currentDate}
+          events={events}
+          memberById={memberById}
+          onPickDate={(d) => {
+            setCurrentDate(d);
+            setViewMode('day');
+          }}
+        />
+      )}
 
-          return (
-            <div key={day} className="bg-white/5 min-h-[120px] p-2 hover:bg-white/10 transition-colors group">
-              <span className="text-sm font-semibold ml-2 mt-2 inline-block opacity-60 group-hover:opacity-100">
-                {day}
-              </span>
-              <div className="mt-2 space-y-1">
-                {dayEvents.map((event) => {
-                  const member = event.assigned_to_member_id ? memberById.get(event.assigned_to_member_id) : undefined;
-                  const color = member?.avatar_color ?? CATEGORY_COLORS[event.category] ?? 'bg-blue-500';
-                  return (
-                    <div
-                      key={event.id}
-                      className={`${color} text-[10px] px-2 py-1 rounded-md font-bold truncate flex items-center gap-1`}
-                    >
-                      {member && (
-                        <span className="inline-block w-3 h-3 rounded-full bg-white/30 text-[8px] font-bold text-center leading-3">
-                          {member.name[0]}
-                        </span>
-                      )}
-                      <span className="truncate">{event.title}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {viewMode === 'week' && (
+        <WeekGrid
+          weekStart={weekStart}
+          events={events}
+          memberById={memberById}
+          onPickDate={(d) => {
+            setCurrentDate(d);
+            setViewMode('day');
+          }}
+        />
+      )}
+
+      {viewMode === 'day' && (
+        <DayList currentDate={currentDate} events={events} memberById={memberById} />
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -337,6 +368,194 @@ const CalendarView: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+type Member = ReturnType<typeof useMembersStore.getState>['items'][number];
+type CalendarEvent = ReturnType<typeof useEventsStore.getState>['items'][number];
+
+const EventChip: React.FC<{ event: CalendarEvent; member?: Member; size?: 'sm' | 'md' }> = ({
+  event,
+  member,
+  size = 'sm',
+}) => {
+  const color = member?.avatar_color ?? CATEGORY_COLORS[event.category] ?? 'bg-blue-500';
+  const sizing = size === 'sm' ? 'text-[10px] px-2 py-1' : 'text-sm px-3 py-2';
+  return (
+    <div className={`${color} ${sizing} rounded-md font-bold truncate flex items-center gap-1.5`}>
+      {member && (
+        <span className="inline-flex items-center justify-center shrink-0 w-4 h-4 rounded-full bg-white/30 text-[9px] font-bold">
+          {member.name[0]}
+        </span>
+      )}
+      <span className="truncate">{event.title}</span>
+    </div>
+  );
+};
+
+const MonthGrid: React.FC<{
+  currentDate: Date;
+  events: CalendarEvent[];
+  memberById: Map<string, Member>;
+  onPickDate: (d: Date) => void;
+}> = ({ currentDate, events, memberById, onPickDate }) => {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const today = todayLocalDate();
+
+  return (
+    <div className="flex-1 grid grid-cols-7 gap-px bg-white/10 rounded-3xl overflow-hidden border border-white/10">
+      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+        <div key={day} className="bg-white/5 p-4 text-center font-bold text-gray-400 text-xs uppercase tracking-widest">
+          {day}
+        </div>
+      ))}
+      {Array.from({ length: firstDay }).map((_, i) => (
+        <div key={`empty-${i}`} className="bg-white/5 min-h-[120px]"></div>
+      ))}
+      {Array.from({ length: daysInMonth }).map((_, i) => {
+        const day = i + 1;
+        const date = new Date(year, month, day);
+        const dateStr = formatDate(date);
+        const dayEvents = events.filter((e) => e.date === dateStr);
+        const isToday = dateStr === today;
+
+        return (
+          <button
+            key={day}
+            onClick={() => onPickDate(date)}
+            className="bg-white/5 min-h-[120px] p-2 hover:bg-white/10 transition-colors group text-left"
+          >
+            <span
+              className={`text-sm font-semibold ml-2 mt-2 inline-flex items-center justify-center w-7 h-7 rounded-full ${
+                isToday ? 'bg-blue-600 text-white' : 'opacity-60 group-hover:opacity-100'
+              }`}
+            >
+              {day}
+            </span>
+            <div className="mt-2 space-y-1">
+              {dayEvents.map((event) => (
+                <EventChip
+                  key={event.id}
+                  event={event}
+                  member={event.assigned_to_member_id ? memberById.get(event.assigned_to_member_id) : undefined}
+                />
+              ))}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+const WeekGrid: React.FC<{
+  weekStart: Date;
+  events: CalendarEvent[];
+  memberById: Map<string, Member>;
+  onPickDate: (d: Date) => void;
+}> = ({ weekStart, events, memberById, onPickDate }) => {
+  const today = todayLocalDate();
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  return (
+    <div className="flex-1 grid grid-cols-7 gap-px bg-white/10 rounded-3xl overflow-hidden border border-white/10">
+      {days.map((d) => {
+        const dateStr = formatDate(d);
+        const isToday = dateStr === today;
+        return (
+          <div key={`h-${dateStr}`} className="bg-white/5 p-4 text-center">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{format(d, 'EEE')}</p>
+            <p
+              className={`text-2xl font-bold mt-1 inline-flex items-center justify-center w-10 h-10 rounded-full ${
+                isToday ? 'bg-blue-600 text-white' : 'text-white'
+              }`}
+            >
+              {format(d, 'd')}
+            </p>
+          </div>
+        );
+      })}
+      {days.map((d) => {
+        const dateStr = formatDate(d);
+        const dayEvents = events.filter((e) => e.date === dateStr);
+        return (
+          <button
+            key={`b-${dateStr}`}
+            onClick={() => onPickDate(d)}
+            className="bg-white/5 hover:bg-white/10 transition-colors p-3 space-y-2 text-left min-h-[400px]"
+          >
+            {dayEvents.length === 0 ? (
+              <p className="text-gray-700 text-xs italic">No events</p>
+            ) : (
+              dayEvents.map((event) => (
+                <EventChip
+                  key={event.id}
+                  event={event}
+                  member={event.assigned_to_member_id ? memberById.get(event.assigned_to_member_id) : undefined}
+                  size="md"
+                />
+              ))
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+const DayList: React.FC<{
+  currentDate: Date;
+  events: CalendarEvent[];
+  memberById: Map<string, Member>;
+}> = ({ currentDate, events, memberById }) => {
+  const dateStr = formatDate(currentDate);
+  const dayEvents = events.filter((e) => e.date === dateStr);
+  const isToday = isSameDay(currentDate, new Date());
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="glass rounded-3xl p-8 max-w-2xl mx-auto">
+        <div className="flex items-baseline justify-between mb-6">
+          <div>
+            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+              {isToday ? 'Today' : format(currentDate, 'EEEE')}
+            </p>
+            <h3 className="text-3xl font-bold mt-1">{format(currentDate, 'MMMM d')}</h3>
+          </div>
+          <p className="text-gray-500 font-bold">
+            {dayEvents.length} {dayEvents.length === 1 ? 'event' : 'events'}
+          </p>
+        </div>
+
+        {dayEvents.length === 0 ? (
+          <p className="text-gray-500 italic text-center py-12">Nothing on the calendar.</p>
+        ) : (
+          <div className="space-y-3">
+            {dayEvents.map((event) => {
+              const member = event.assigned_to_member_id ? memberById.get(event.assigned_to_member_id) : undefined;
+              const color = member?.avatar_color ?? CATEGORY_COLORS[event.category] ?? 'bg-blue-500';
+              return (
+                <div
+                  key={event.id}
+                  className="flex items-center gap-4 bg-white/5 p-5 rounded-2xl border border-white/5"
+                >
+                  <div className={`w-2 h-12 rounded-full ${color}`}></div>
+                  <div className="flex-1">
+                    <p className="text-xl font-bold leading-tight">{event.title}</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
+                      {member ? `For ${member.name}` : `Category: ${event.category}`}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

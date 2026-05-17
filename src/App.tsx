@@ -8,6 +8,7 @@ import GroceriesView from './components/GroceriesView';
 import ChoresView from './components/ChoresView';
 import MealsView from './components/MealsView';
 import InfoHub from './components/InfoHub';
+import MembersView from './components/MembersView';
 import LoginGate from './components/LoginGate';
 import { supabaseConfigured } from './lib/supabase';
 import { signOut, useSession } from './lib/auth';
@@ -50,6 +51,8 @@ const FamilyOS: React.FC = () => {
         return <ChoresView />;
       case 'meals':
         return <MealsView />;
+      case 'members':
+        return <MembersView />;
       case 'info':
         return <InfoHub />;
       default:
