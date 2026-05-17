@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { TaskItem, Member } from '../types';
-import { Plus, Trash2, CheckCircle2, Circle, Coins, User, Trophy, TrendingUp, Lock, Unlock, Edit2 } from 'lucide-react';
+import { Trash2, CheckCircle2, Coins, User, Trophy, TrendingUp, Lock, Unlock } from 'lucide-react';
 import { startOfWeek, endOfWeek, addWeeks, format, parseISO } from 'date-fns';
+import { useAdminGate } from '../lib/admin';
 
 interface Props {
   tasks: TaskItem[];
@@ -24,9 +25,7 @@ const ChoresView: React.FC<Props> = ({ tasks, setTasks, members, onToggleTask })
   const [taskDueDate, setTaskDueDate] = useState('');
   const [taskRecurrence, setTaskRecurrence] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none');
 
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
+  const admin = useAdminGate();
 
   const [rewards, setRewards] = useState<RewardTier[]>(() => {
     const saved = localStorage.getItem('family_chores_rewards');
@@ -63,26 +62,6 @@ const ChoresView: React.FC<Props> = ({ tasks, setTasks, members, onToggleTask })
 
   const updateReward = (id: string, key: keyof RewardTier, value: string | number) => {
     setRewards(prev => prev.map(r => r.id === id ? { ...r, [key]: value } : r));
-  };
-
-  const toggleAdminMode = () => {
-    if (isAdminMode) {
-      setIsAdminMode(false);
-    } else {
-      setShowPasswordPrompt(true);
-    }
-  };
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordInput === 'Bigred257!') {
-      setIsAdminMode(true);
-      setShowPasswordPrompt(false);
-      setPasswordInput('');
-    } else {
-      alert('Incorrect password');
-      setPasswordInput('');
-    }
   };
 
   const sortedMembers = [...members].sort((a, b) => b.points - a.points);
@@ -151,7 +130,7 @@ const ChoresView: React.FC<Props> = ({ tasks, setTasks, members, onToggleTask })
       </button>
       
       <div className="flex items-center gap-3">
-        {isAdminMode && !task.completed ? (
+        {admin.isAdmin && !task.completed ? (
           <div className="flex items-center">
             <input 
                type="number" 
@@ -166,7 +145,7 @@ const ChoresView: React.FC<Props> = ({ tasks, setTasks, members, onToggleTask })
              {task.points} Points
           </div>
         )}
-        {isAdminMode && (
+        {admin.isAdmin && (
           <button 
             onClick={() => setTasks(prev => prev.filter(t => t.id !== task.id))}
             className="p-3 text-red-400 hover:bg-red-500/20 transition-all rounded-xl ml-2"
@@ -189,28 +168,28 @@ const ChoresView: React.FC<Props> = ({ tasks, setTasks, members, onToggleTask })
               Earn Points
             </span>
           </h2>
-          <button 
-            onClick={toggleAdminMode}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${isAdminMode ? 'bg-red-500/20 text-red-400' : 'bg-white/10 hover:bg-white/20'}`}
+          <button
+            onClick={admin.requestToggle}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${admin.isAdmin ? 'bg-red-500/20 text-red-400' : 'bg-white/10 hover:bg-white/20'}`}
           >
-            {isAdminMode ? <Unlock size={18} /> : <Lock size={18} />}
-            {isAdminMode ? 'Admin Mode' : 'Admin'}
+            {admin.isAdmin ? <Unlock size={18} /> : <Lock size={18} />}
+            {admin.isAdmin ? 'Admin Mode' : 'Admin'}
           </button>
         </div>
 
-        {showPasswordPrompt && (
+        {admin.showPrompt && (
           <div className="absolute top-16 right-0 z-20 glass p-4 rounded-2xl shadow-2xl border border-white/20 w-72">
-            <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-3">
+            <form onSubmit={admin.submit} className="flex flex-col gap-3">
               <p className="text-sm font-medium text-gray-300">Enter Admin Password:</p>
-              <input 
-                type="password" 
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
+              <input
+                type="password"
+                value={admin.passwordInput}
+                onChange={(e) => admin.setPasswordInput(e.target.value)}
                 className="bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
                 autoFocus
               />
               <div className="flex justify-end gap-2 text-sm mt-1">
-                <button type="button" onClick={() => setShowPasswordPrompt(false)} className="px-3 py-1.5 hover:bg-white/10 rounded-md">Cancel</button>
+                <button type="button" onClick={admin.cancel} className="px-3 py-1.5 hover:bg-white/10 rounded-md">Cancel</button>
                 <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-md text-white font-medium">Unlock</button>
               </div>
             </form>
@@ -381,7 +360,7 @@ const ChoresView: React.FC<Props> = ({ tasks, setTasks, members, onToggleTask })
 
                 return (
                   <div key={reward.id} className={`p-4 bg-gradient-to-br ${colorClass.split(' ')[0]} ${colorClass.split(' ')[1]} rounded-2xl border ${colorClass.split(' ')[2]}`}>
-                    {isAdminMode ? (
+                    {admin.isAdmin ? (
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-bold uppercase ${colorClass.split(' ')[3]}`}>Tier {index + 1} Points:</span>

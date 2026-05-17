@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { GroceryItem } from '../types';
 import { AISLES } from '../constants';
-// Added ShoppingCart to the imports from lucide-react
-import { Plus, Trash2, CheckCircle2, Circle, ShoppingCart, Archive, List } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Circle, ShoppingCart, Archive } from 'lucide-react';
 
 const GROCERY_DATABASE: Record<string, string[]> = {
   Produce: ['Apples', 'Bananas', 'Carrots', 'Lettuce', 'Tomatoes', 'Onions', 'Garlic', 'Potatoes', 'Broccoli', 'Lemons', 'Berries'],
@@ -21,7 +20,7 @@ interface Props {
   setGroceries: React.Dispatch<React.SetStateAction<GroceryItem[]>>;
 }
 
-const TasksView: React.FC<Props> = ({ groceries, setGroceries }) => {
+const GroceriesView: React.FC<Props> = ({ groceries, setGroceries }) => {
   const [newAisle, setNewAisle] = useState('Produce');
   const [newGrocery, setNewGrocery] = useState('');
   const [activeTab, setActiveTab] = useState<'need' | 'have'>('need');
@@ -173,4 +172,4 @@ const TasksView: React.FC<Props> = ({ groceries, setGroceries }) => {
   );
 };
 
-export default TasksView;
+export default GroceriesView;

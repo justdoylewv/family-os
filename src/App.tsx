@@ -4,7 +4,7 @@ import { NAV_ITEMS } from './constants';
 import { View, CalendarEvent, GroceryItem, TaskItem, MealPlan, Category, Member } from './types';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
-import TasksView from './components/TasksView';
+import GroceriesView from './components/GroceriesView';
 import ChoresView from './components/ChoresView';
 import MealsView from './components/MealsView';
 import InfoHub from './components/InfoHub';
@@ -88,7 +88,7 @@ const App: React.FC = () => {
       case 'calendar':
         return <CalendarView events={events} setEvents={setEvents} />;
       case 'groceries':
-        return <TasksView groceries={groceries} setGroceries={setGroceries} />;
+        return <GroceriesView groceries={groceries} setGroceries={setGroceries} />;
       case 'chores':
         return <ChoresView tasks={tasks} setTasks={setTasks} members={members} onToggleTask={handleToggleTask} />;
       case 'meals':

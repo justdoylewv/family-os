@@ -1,5 +1,3 @@
-
-import React from 'react';
 import { LayoutDashboard, Calendar, ShoppingCart, Utensils, Info, Trophy } from 'lucide-react';
 import { Category, View } from './types';
 

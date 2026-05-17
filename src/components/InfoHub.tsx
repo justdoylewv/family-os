@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Wifi, PhoneCall, ClipboardList, Zap, ShieldAlert, Lock, Unlock, Plus, Trash2, Edit2, Check } from 'lucide-react';
+import { Wifi, PhoneCall, ClipboardList, Zap, ShieldAlert, Lock, Unlock, Plus, Trash2 } from 'lucide-react';
+import { useAdminGate } from '../lib/admin';
 
 interface Contact {
   id: string;
@@ -46,33 +47,11 @@ const InfoHub: React.FC = () => {
     return saved ? JSON.parse(saved) : defaultData;
   });
 
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
+  const admin = useAdminGate();
 
   useEffect(() => {
     localStorage.setItem('family_info_hub', JSON.stringify(data));
   }, [data]);
-
-  const toggleAdminMode = () => {
-    if (isAdminMode) {
-      setIsAdminMode(false);
-    } else {
-      setShowPasswordPrompt(true);
-    }
-  };
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordInput === 'Bigred257!') {
-      setIsAdminMode(true);
-      setShowPasswordPrompt(false);
-      setPasswordInput('');
-    } else {
-      alert('Incorrect password');
-      setPasswordInput('');
-    }
-  };
 
   const updateWifi = (key: 'wifiName' | 'wifiPass', val: string) => {
     setData(prev => ({ ...prev, [key]: val }));
@@ -124,28 +103,28 @@ const InfoHub: React.FC = () => {
     <div className="space-y-10 relative">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Information Hub</h2>
-        <button 
-          onClick={toggleAdminMode}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${isAdminMode ? 'bg-red-500/20 text-red-400' : 'bg-white/10 hover:bg-white/20'}`}
+        <button
+          onClick={admin.requestToggle}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${admin.isAdmin ? 'bg-red-500/20 text-red-400' : 'bg-white/10 hover:bg-white/20'}`}
         >
-          {isAdminMode ? <Unlock size={18} /> : <Lock size={18} />}
-          {isAdminMode ? 'Admin Mode (Active)' : 'Enter Admin Mode'}
+          {admin.isAdmin ? <Unlock size={18} /> : <Lock size={18} />}
+          {admin.isAdmin ? 'Admin Mode (Active)' : 'Enter Admin Mode'}
         </button>
       </div>
 
-      {showPasswordPrompt && (
+      {admin.showPrompt && (
         <div className="absolute top-16 right-0 z-10 glass p-4 rounded-2xl shadow-2xl border border-white/20 w-72">
-          <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-3">
+          <form onSubmit={admin.submit} className="flex flex-col gap-3">
             <p className="text-sm font-medium text-gray-300">Enter Admin Password:</p>
-            <input 
-              type="password" 
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
+            <input
+              type="password"
+              value={admin.passwordInput}
+              onChange={(e) => admin.setPasswordInput(e.target.value)}
               className="bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
               autoFocus
             />
             <div className="flex justify-end gap-2 text-sm mt-1">
-              <button type="button" onClick={() => setShowPasswordPrompt(false)} className="px-3 py-1.5 hover:bg-white/10 rounded-md">Cancel</button>
+              <button type="button" onClick={admin.cancel} className="px-3 py-1.5 hover:bg-white/10 rounded-md">Cancel</button>
               <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-md text-white font-medium">Unlock</button>
             </div>
           </form>
@@ -163,7 +142,7 @@ const InfoHub: React.FC = () => {
             </div>
             <div className="space-y-1">
               <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Network Name</p>
-              {isAdminMode ? (
+              {admin.isAdmin ? (
                 <input 
                   type="text" 
                   value={data.wifiName}
@@ -176,7 +155,7 @@ const InfoHub: React.FC = () => {
             </div>
             <div className="space-y-1">
               <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Password</p>
-              {isAdminMode ? (
+              {admin.isAdmin ? (
                 <input 
                   type="text" 
                   value={data.wifiPass}
@@ -200,7 +179,7 @@ const InfoHub: React.FC = () => {
                 <ShieldAlert size={32} />
                 <h3 className="text-2xl font-bold">Emergency Contacts</h3>
               </div>
-              {isAdminMode && (
+              {admin.isAdmin && (
                 <button onClick={addContact} className="bg-white/10 hover:bg-white/20 p-2 rounded-lg text-white">
                   <Plus size={18} />
                 </button>
@@ -211,7 +190,7 @@ const InfoHub: React.FC = () => {
                 const colors = ['bg-blue-500/10 text-blue-400', 'bg-green-500/10 text-green-400', 'bg-red-500/10 text-red-400 font-bold', 'bg-orange-500/10 text-orange-400'];
                 const color = colors[i % colors.length];
                 
-                if (isAdminMode) {
+                if (admin.isAdmin) {
                   return (
                     <div key={contact.id} className="flex gap-2 items-center p-3 bg-white/5 rounded-2xl border border-white/10">
                       <div className="flex-1 space-y-2">
@@ -257,7 +236,7 @@ const InfoHub: React.FC = () => {
                 <ClipboardList size={32} />
                 <h3 className="text-2xl font-bold">Daily Chore Assignments</h3>
               </div>
-              {isAdminMode && (
+              {admin.isAdmin && (
                 <button onClick={addChore} className="bg-white/10 hover:bg-white/20 p-2 rounded-lg text-white">
                   <Plus size={18} />
                 </button>
@@ -271,28 +250,28 @@ const InfoHub: React.FC = () => {
                     <th className="pb-4 font-bold text-gray-500 uppercase text-xs tracking-[0.2em]">Assigned To</th>
                     <th className="pb-4 font-bold text-gray-500 uppercase text-xs tracking-[0.2em]">Status</th>
                     <th className="pb-4 font-bold text-gray-500 uppercase text-xs tracking-[0.2em]">Reward</th>
-                    {isAdminMode && <th className="pb-4 font-bold text-gray-500 uppercase text-xs tracking-[0.2em]">Actions</th>}
+                    {admin.isAdmin && <th className="pb-4 font-bold text-gray-500 uppercase text-xs tracking-[0.2em]">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {data.chores.map((row) => (
                     <tr key={row.id} className="group">
                       <td className="py-4">
-                        {isAdminMode ? (
+                        {admin.isAdmin ? (
                           <input type="text" value={row.chore} onChange={(e) => updateChore(row.id, 'chore', e.target.value)} className="bg-black/50 border border-white/10 rounded-md px-2 py-1 outline-none focus:border-blue-500 min-w-[150px]" />
                         ) : (
                           <span className="font-semibold text-xl">{row.chore}</span>
                         )}
                       </td>
                       <td className="py-4">
-                        {isAdminMode ? (
+                        {admin.isAdmin ? (
                           <input type="text" value={row.who} onChange={(e) => updateChore(row.id, 'who', e.target.value)} className="bg-black/50 border border-white/10 rounded-md px-2 py-1 outline-none focus:border-blue-500 w-24" />
                         ) : (
                           <span className="bg-white/10 px-4 py-2 rounded-xl text-lg">{row.who}</span>
                         )}
                       </td>
                       <td className="py-4">
-                        {isAdminMode ? (
+                        {admin.isAdmin ? (
                           <select value={row.status} onChange={(e) => updateChore(row.id, 'status', e.target.value)} className="bg-black/50 border border-white/10 rounded-md px-2 py-1.5 outline-none focus:border-blue-500 text-sm">
                             <option value="Pending">Pending</option>
                             <option value="In Progress">In Progress</option>
@@ -308,13 +287,13 @@ const InfoHub: React.FC = () => {
                         )}
                       </td>
                       <td className="py-4">
-                         {isAdminMode ? (
+                         {admin.isAdmin ? (
                           <input type="text" value={row.reward} onChange={(e) => updateChore(row.id, 'reward', e.target.value)} className="bg-black/50 border border-white/10 rounded-md px-2 py-1 outline-none focus:border-blue-500 w-full min-w-[120px]" />
                         ) : (
                           <span className="italic text-gray-400">{row.reward}</span>
                         )}
                       </td>
-                      {isAdminMode && (
+                      {admin.isAdmin && (
                         <td className="py-4">
                           <button onClick={() => removeChore(row.id)} className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg">
                             <Trash2 size={16} />
