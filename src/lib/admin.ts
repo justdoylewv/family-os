@@ -10,6 +10,8 @@ export function useAdminGate() {
   const requestToggle = () => {
     if (isAdmin) {
       setIsAdmin(false);
+    } else if (!ADMIN_PASSWORD) {
+      setIsAdmin(true);
     } else {
       setShowPrompt(true);
     }

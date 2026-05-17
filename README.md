@@ -6,6 +6,16 @@ info hub — designed for a wall-mounted tablet in the kitchen or living room.
 Built with React 19 + Vite + Tailwind, Supabase for realtime sync, and Gemini for
 voice-to-calendar. Deploys to Vercel.
 
+## Deploy the MVP in one tap
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjustdoylewv%2Ffamily-os&project-name=family-os&repository-name=family-os)
+
+The MVP runs with **no env vars**: data stays in the device's `localStorage`,
+voice and Google Calendar sync are gracefully disabled. Once you're ready,
+follow the Supabase + Google setup below and paste the env vars into the
+Vercel dashboard — no redeploy needed for Vite to pick them up on the next
+build.
+
 ---
 
 ## Quick start (local dev, no backend)
