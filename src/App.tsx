@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { Loader2, LogOut } from 'lucide-react';
 import { NAV_ITEMS } from './constants';
 import { View, CalendarEvent, GroceryItem, TaskItem, MealPlan, Category, Member } from './types';
 import Dashboard from './components/Dashboard';
@@ -8,8 +8,29 @@ import GroceriesView from './components/GroceriesView';
 import ChoresView from './components/ChoresView';
 import MealsView from './components/MealsView';
 import InfoHub from './components/InfoHub';
+import LoginGate from './components/LoginGate';
+import { supabaseConfigured } from './lib/supabase';
+import { signOut, useSession } from './lib/auth';
 
 const App: React.FC = () => {
+  const { session, loading } = useSession();
+
+  if (supabaseConfigured && loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-black text-white">
+        <Loader2 className="animate-spin text-gray-500" size={32} />
+      </div>
+    );
+  }
+
+  if (supabaseConfigured && !session) {
+    return <LoginGate />;
+  }
+
+  return <FamilyOS />;
+};
+
+const FamilyOS: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
   
   const [members, setMembers] = useState<Member[]>(() => {
@@ -113,8 +134,8 @@ const App: React.FC = () => {
             key={item.id}
             onClick={() => setActiveView(item.id)}
             className={`p-4 rounded-2xl transition-all duration-200 flex flex-col items-center gap-2 w-20 ${
-              activeView === item.id 
-                ? 'glass-active text-blue-400 shadow-inner' 
+              activeView === item.id
+                ? 'glass-active text-blue-400 shadow-inner'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -122,6 +143,16 @@ const App: React.FC = () => {
             <span className="text-[10px] font-medium uppercase tracking-wider text-center leading-tight">{item.label}</span>
           </button>
         ))}
+        {supabaseConfigured && (
+          <button
+            onClick={() => signOut()}
+            className="mt-auto p-4 rounded-2xl text-gray-500 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-2 w-20"
+            title="Sign out"
+          >
+            <LogOut size={22} />
+            <span className="text-[10px] font-medium uppercase tracking-wider">Lock</span>
+          </button>
+        )}
       </nav>
 
       <main className="flex-1 glass rounded-3xl overflow-hidden relative">
