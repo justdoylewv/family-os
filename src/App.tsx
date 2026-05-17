@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Loader2, LogOut } from 'lucide-react';
 import { NAV_ITEMS } from './constants';
-import { View, CalendarEvent, GroceryItem, TaskItem, MealPlan, Category, Member } from './types';
+import type { View } from './types';
 import Dashboard from './components/Dashboard';
 import CalendarView from './components/CalendarView';
 import GroceriesView from './components/GroceriesView';
@@ -11,6 +11,7 @@ import InfoHub from './components/InfoHub';
 import LoginGate from './components/LoginGate';
 import { supabaseConfigured } from './lib/supabase';
 import { signOut, useSession } from './lib/auth';
+import { useBootstrapStores } from './lib/db';
 
 const App: React.FC = () => {
   const { session, loading } = useSession();
@@ -32,92 +33,24 @@ const App: React.FC = () => {
 
 const FamilyOS: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
-  
-  const [members, setMembers] = useState<Member[]>(() => {
-    const saved = localStorage.getItem('family_members');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', name: 'Otto', points: 45, avatarColor: 'bg-blue-500' },
-      { id: '2', name: 'Future Baby', points: 0, avatarColor: 'bg-pink-500' },
-      { id: '3', name: 'Dad', points: 120, avatarColor: 'bg-green-500' },
-      { id: '4', name: 'Mom', points: 150, avatarColor: 'bg-purple-500' },
-    ];
-  });
-
-  const [events, setEvents] = useState<CalendarEvent[]>(() => {
-    const saved = localStorage.getItem('family_events');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', title: 'Soccer Practice', date: new Date().toISOString().split('T')[0], category: Category.KIDS },
-      { id: '2', title: 'Dinner with Grandparents', date: new Date().toISOString().split('T')[0], category: Category.FAMILY },
-    ];
-  });
-
-  const [groceries, setGroceries] = useState<GroceryItem[]>(() => {
-    const saved = localStorage.getItem('family_groceries');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', text: 'Milk', completed: false, aisle: 'Dairy' },
-      { id: '2', text: 'Apples', completed: true, aisle: 'Produce' },
-    ];
-  });
-
-  const [tasks, setTasks] = useState<TaskItem[]>(() => {
-    const saved = localStorage.getItem('family_tasks');
-    return saved ? JSON.parse(saved) : [
-      { id: '1', text: 'Take out trash', completed: false, assignedTo: 'Otto', points: 10 },
-      { id: '2', text: 'Load dishwasher', completed: false, assignedTo: 'Mom', points: 15 },
-    ];
-  });
-
-  const [meals, setMeals] = useState<MealPlan[]>(() => {
-    const saved = localStorage.getItem('family_meals');
-    if (saved) return JSON.parse(saved);
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return days.map(day => ({ day, lunch: '', dinner: '' }));
-  });
-
-  const [quickNote, setQuickNote] = useState(() => localStorage.getItem('family_note') || "Dad is napping. Keep it quiet!");
-
-  useEffect(() => localStorage.setItem('family_events', JSON.stringify(events)), [events]);
-  useEffect(() => localStorage.setItem('family_groceries', JSON.stringify(groceries)), [groceries]);
-  useEffect(() => localStorage.setItem('family_tasks', JSON.stringify(tasks)), [tasks]);
-  useEffect(() => localStorage.setItem('family_meals', JSON.stringify(meals)), [meals]);
-  useEffect(() => localStorage.setItem('family_note', quickNote), [quickNote]);
-  useEffect(() => localStorage.setItem('family_members', JSON.stringify(members)), [members]);
-
-  const handleToggleTask = (taskId: string) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id === taskId) {
-        const isNowCompleted = !t.completed;
-        if (isNowCompleted && t.assignedTo) {
-          setMembers(mPrev => mPrev.map(m => 
-            m.name === t.assignedTo ? { ...m, points: m.points + t.points } : m
-          ));
-        } else if (!isNowCompleted && t.assignedTo) {
-          setMembers(mPrev => mPrev.map(m => 
-            m.name === t.assignedTo ? { ...m, points: Math.max(0, m.points - t.points) } : m
-          ));
-        }
-        return { ...t, completed: isNowCompleted };
-      }
-      return t;
-    }));
-  };
+  useBootstrapStores();
 
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard events={events} meals={meals} quickNote={quickNote} setQuickNote={setQuickNote} members={members} />;
+        return <Dashboard />;
       case 'calendar':
-        return <CalendarView events={events} setEvents={setEvents} />;
+        return <CalendarView />;
       case 'groceries':
-        return <GroceriesView groceries={groceries} setGroceries={setGroceries} />;
+        return <GroceriesView />;
       case 'chores':
-        return <ChoresView tasks={tasks} setTasks={setTasks} members={members} onToggleTask={handleToggleTask} />;
+        return <ChoresView />;
       case 'meals':
-        return <MealsView meals={meals} setMeals={setMeals} />;
+        return <MealsView />;
       case 'info':
         return <InfoHub />;
       default:
-        return <Dashboard events={events} meals={meals} quickNote={quickNote} setQuickNote={setQuickNote} members={members} />;
+        return <Dashboard />;
     }
   };
 
@@ -140,7 +73,9 @@ const FamilyOS: React.FC = () => {
             }`}
           >
             {item.icon}
-            <span className="text-[10px] font-medium uppercase tracking-wider text-center leading-tight">{item.label}</span>
+            <span className="text-[10px] font-medium uppercase tracking-wider text-center leading-tight">
+              {item.label}
+            </span>
           </button>
         ))}
         {supabaseConfigured && (
@@ -156,9 +91,7 @@ const FamilyOS: React.FC = () => {
       </nav>
 
       <main className="flex-1 glass rounded-3xl overflow-hidden relative">
-        <div className="h-full w-full overflow-y-auto p-8">
-          {renderContent()}
-        </div>
+        <div className="h-full w-full overflow-y-auto p-8">{renderContent()}</div>
       </main>
     </div>
   );

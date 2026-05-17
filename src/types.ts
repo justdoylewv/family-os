@@ -1,16 +1,27 @@
+export type EventCategory =
+  | 'family'
+  | 'kids'
+  | 'parents'
+  | 'medical'
+  | 'school'
+  | 'work'
+  | 'other';
 
-export enum Category {
-  FAMILY = 'Family',
-  WORK = 'Work',
-  KIDS = 'Kids',
-  BILLS = 'Bills'
+export interface Member {
+  id: string;
+  name: string;
+  points: number;
+  avatar_color: string;
+  sort_order?: number;
 }
 
 export interface CalendarEvent {
   id: string;
   title: string;
   date: string;
-  category: Category;
+  category: EventCategory;
+  assigned_to_member_id?: string | null;
+  google_event_id?: string | null;
 }
 
 export interface GroceryItem {
@@ -20,27 +31,36 @@ export interface GroceryItem {
   aisle: string;
 }
 
-export interface TaskItem {
+export type Recurrence = 'none' | 'daily' | 'weekly' | 'monthly';
+
+export interface Chore {
   id: string;
   text: string;
   completed: boolean;
-  assignedTo?: string;
+  assigned_to_member_id?: string | null;
   points: number;
-  dueDate?: string;
-  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly';
+  due_date?: string | null;
+  recurrence: Recurrence;
 }
 
-export interface Member {
+export interface Reward {
   id: string;
-  name: string;
   points: number;
-  avatarColor: string;
+  description: string;
+  sort_order?: number;
 }
 
 export interface MealPlan {
   day: string;
   lunch: string;
   dinner: string;
+}
+
+export interface Contact {
+  id: string;
+  name: string;
+  phone: string;
+  sort_order?: number;
 }
 
 export type View = 'dashboard' | 'calendar' | 'groceries' | 'meals' | 'info' | 'chores';

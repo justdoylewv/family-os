@@ -1,34 +1,25 @@
-
 import React, { useState } from 'react';
-import { MealPlan } from '../types';
 import { Check, Edit2, Star } from 'lucide-react';
+import { useMealsStore } from '../lib/db';
 
-interface Props {
-  meals: MealPlan[];
-  setMeals: React.Dispatch<React.SetStateAction<MealPlan[]>>;
-}
+const FAVORITES = ['Tacos', 'Spaghetti', 'Grilled Salmon', 'Stir Fry', 'Pizza', 'Roast Chicken', 'Lentil Soup'];
 
-const FAVORITES = ["Tacos", "Spaghetti", "Grilled Salmon", "Stir Fry", "Pizza", "Roast Chicken", "Lentil Soup"];
+const MealsView: React.FC = () => {
+  const meals = useMealsStore((s) => s.items);
+  const setMeal = useMealsStore((s) => s.setMeal);
 
-const MealsView: React.FC<Props> = ({ meals, setMeals }) => {
-  const [editing, setEditing] = useState<{ day: string, type: 'lunch' | 'dinner' } | null>(null);
+  const [editing, setEditing] = useState<{ day: string; slot: 'lunch' | 'dinner' } | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  const startEdit = (day: string, type: 'lunch' | 'dinner', current: string) => {
-    setEditing({ day, type });
+  const startEdit = (day: string, slot: 'lunch' | 'dinner', current: string) => {
+    setEditing({ day, slot });
     setEditValue(current);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editing) return;
-    setMeals(prev => prev.map(m => 
-      m.day === editing.day ? { ...m, [editing.type]: editValue } : m
-    ));
+    await setMeal(editing.day, editing.slot, editValue);
     setEditing(null);
-  };
-
-  const selectFavorite = (fav: string) => {
-    setEditValue(fav);
   };
 
   return (
@@ -43,35 +34,36 @@ const MealsView: React.FC<Props> = ({ meals, setMeals }) => {
 
       <div className="grid grid-cols-1 gap-4 overflow-y-auto pb-8">
         {meals.map((item) => (
-          <div key={item.day} className="glass rounded-3xl p-6 flex flex-col md:flex-row md:items-center gap-6 shadow-lg border border-white/5 transition-all hover:border-white/20">
+          <div
+            key={item.day}
+            className="glass rounded-3xl p-6 flex flex-col md:flex-row md:items-center gap-6 shadow-lg border border-white/5 transition-all hover:border-white/20"
+          >
             <div className="w-40">
               <h3 className="text-2xl font-bold text-blue-400">{item.day}</h3>
             </div>
-            
+
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Lunch Slot */}
-              <button 
+              <button
                 onClick={() => startEdit(item.day, 'lunch', item.lunch)}
                 className="bg-white/5 hover:bg-white/10 p-5 rounded-2xl text-left transition-all border border-transparent hover:border-blue-500/50 flex justify-between items-center"
               >
                 <div>
                   <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Lunch</p>
                   <p className={`text-lg ${item.lunch ? 'text-white' : 'text-gray-700 italic'}`}>
-                    {item.lunch || "Add lunch..."}
+                    {item.lunch || 'Add lunch…'}
                   </p>
                 </div>
                 <Edit2 size={16} className="text-gray-600" />
               </button>
 
-              {/* Dinner Slot */}
-              <button 
+              <button
                 onClick={() => startEdit(item.day, 'dinner', item.dinner)}
                 className="bg-white/5 hover:bg-white/10 p-5 rounded-2xl text-left transition-all border border-transparent hover:border-pink-500/50 flex justify-between items-center"
               >
                 <div>
                   <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Dinner</p>
                   <p className={`text-lg ${item.dinner ? 'text-white' : 'text-gray-700 italic'}`}>
-                    {item.dinner || "Add dinner..."}
+                    {item.dinner || 'Add dinner…'}
                   </p>
                 </div>
                 <Edit2 size={16} className="text-gray-600" />
@@ -86,9 +78,11 @@ const MealsView: React.FC<Props> = ({ meals, setMeals }) => {
           <div className="glass rounded-3xl p-8 w-full max-w-2xl border border-white/20 shadow-2xl">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-3xl font-bold">
-                {editing.day} <span className="text-blue-500">{editing.type}</span>
+                {editing.day} <span className="text-blue-500">{editing.slot}</span>
               </h3>
-              <button onClick={() => setEditing(null)} className="text-gray-500 hover:text-white">✕</button>
+              <button onClick={() => setEditing(null)} className="text-gray-500 hover:text-white">
+                ✕
+              </button>
             </div>
 
             <div className="space-y-8">
@@ -102,12 +96,14 @@ const MealsView: React.FC<Props> = ({ meals, setMeals }) => {
               />
 
               <div>
-                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Quick Select Favorites</p>
+                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">
+                  Quick Select Favorites
+                </p>
                 <div className="flex flex-wrap gap-3">
-                  {FAVORITES.map(fav => (
+                  {FAVORITES.map((fav) => (
                     <button
                       key={fav}
-                      onClick={() => selectFavorite(fav)}
+                      onClick={() => setEditValue(fav)}
                       className="bg-white/5 hover:bg-blue-600 hover:text-white px-6 py-3 rounded-full border border-white/10 transition-all font-medium"
                     >
                       {fav}
@@ -117,13 +113,13 @@ const MealsView: React.FC<Props> = ({ meals, setMeals }) => {
               </div>
 
               <div className="flex gap-4">
-                <button 
+                <button
                   onClick={() => setEditing(null)}
                   className="flex-1 bg-white/5 hover:bg-white/10 py-6 rounded-3xl font-bold text-xl transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={saveEdit}
                   className="flex-1 bg-blue-600 hover:bg-blue-500 py-6 rounded-3xl font-bold text-xl shadow-xl shadow-blue-600/30 flex items-center justify-center gap-3"
                 >
