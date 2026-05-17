@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, Mic, Square } from 'lucide-react';
 import { CATEGORY_COLORS, EVENT_CATEGORIES } from '../constants';
 import { useEventsStore, useMembersStore } from '../lib/db';
+import { authedFetch } from '../lib/auth';
 import type { EventCategory } from '../types';
 
 interface NewEventDraft {
@@ -38,7 +39,7 @@ const CalendarView: React.FC = () => {
 
       setIsSyncing(true);
       try {
-        const res = await fetch('/api/calendar/sync', {
+        const res = await authedFetch('/api/calendar/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tokens: event.data.tokens }),
@@ -73,7 +74,7 @@ const CalendarView: React.FC = () => {
   const handleConnectGoogle = async () => {
     try {
       const redirectUri = `${window.location.origin}/api/auth/google/callback`;
-      const response = await fetch(`/api/auth/google/url?redirectUri=${encodeURIComponent(redirectUri)}`);
+      const response = await authedFetch(`/api/auth/google/url?redirectUri=${encodeURIComponent(redirectUri)}`);
       if (!response.ok) throw new Error('Failed to get auth URL.');
       const { url } = await response.json();
       const authWindow = window.open(url, 'oauth_popup', 'width=600,height=700');
@@ -108,7 +109,7 @@ const CalendarView: React.FC = () => {
         reader.onloadend = async () => {
           const base64data = (reader.result as string).split(',')[1];
           try {
-            const res = await fetch('/api/parse-events', {
+            const res = await authedFetch('/api/parse-events', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ audioData: base64data, mimeType: audioBlob.type }),
