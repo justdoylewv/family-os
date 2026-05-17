@@ -194,7 +194,10 @@ const InfoHub: React.FC = () => {
 
       <div className="flex justify-center pt-8 text-gray-600 text-sm font-medium">
         <Zap size={16} className="inline mr-2" />
-        Family OS • Syncing with Cloud
+        Family OS {__APP_VERSION__}
+        {__APP_COMMIT__ && (
+          <span className="ml-2 text-gray-700">• {__APP_COMMIT__.slice(0, 7)}</span>
+        )}
       </div>
     </div>
   );

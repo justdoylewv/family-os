@@ -1,7 +1,13 @@
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  version: string;
+};
+const commit = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? '';
 
 export default defineConfig({
   plugins: [
@@ -31,6 +37,10 @@ export default defineConfig({
       },
     }),
   ],
+  define: {
+    __APP_VERSION__: JSON.stringify(`v${pkg.version}`),
+    __APP_COMMIT__: JSON.stringify(commit),
+  },
   server: {
     port: 3000,
     host: '0.0.0.0',
