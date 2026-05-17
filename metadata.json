@@ -1,0 +1,6 @@
+{
+  "name": "Family OS",
+  "description": "A comprehensive iPad-optimized Family Operating System for wall-mounted or tablet use, featuring scheduling, meal planning, task management, and voice-to-calendar capabilities.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
