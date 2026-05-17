@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, LogOut } from 'lucide-react';
+import { Loader2, LogOut, Maximize2, Minimize2 } from 'lucide-react';
 import { NAV_ITEMS } from './constants';
 import type { View } from './types';
 import Dashboard from './components/Dashboard';
@@ -12,6 +12,7 @@ import LoginGate from './components/LoginGate';
 import { supabaseConfigured } from './lib/supabase';
 import { signOut, useSession } from './lib/auth';
 import { useBootstrapStores } from './lib/db';
+import { useFullscreen, useWakeLock } from './lib/kiosk';
 
 const App: React.FC = () => {
   const { session, loading } = useSession();
@@ -34,6 +35,8 @@ const App: React.FC = () => {
 const FamilyOS: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
   useBootstrapStores();
+  const fullscreen = useFullscreen();
+  useWakeLock(true);
 
   const renderContent = () => {
     switch (activeView) {
@@ -78,10 +81,20 @@ const FamilyOS: React.FC = () => {
             </span>
           </button>
         ))}
+        <button
+          onClick={() => void fullscreen.toggle()}
+          className="mt-auto p-4 rounded-2xl text-gray-500 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-2 w-20"
+          title={fullscreen.isFullscreen ? 'Exit full screen' : 'Kiosk mode'}
+        >
+          {fullscreen.isFullscreen ? <Minimize2 size={22} /> : <Maximize2 size={22} />}
+          <span className="text-[10px] font-medium uppercase tracking-wider">
+            {fullscreen.isFullscreen ? 'Exit' : 'Kiosk'}
+          </span>
+        </button>
         {supabaseConfigured && (
           <button
             onClick={() => signOut()}
-            className="mt-auto p-4 rounded-2xl text-gray-500 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-2 w-20"
+            className="p-4 rounded-2xl text-gray-500 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-2 w-20"
             title="Sign out"
           >
             <LogOut size={22} />
