@@ -11,6 +11,15 @@ const commit = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?
 
 export default defineConfig({
   plugins: [
+    {
+      name: 'inject-build-meta',
+      transformIndexHtml(html) {
+        return html.replace(
+          '<title>',
+          `<meta name="app-version" content="${pkg.version}" />\n    <meta name="app-commit" content="${commit}" />\n    <title>`,
+        );
+      },
+    },
     react(),
     VitePWA({
       registerType: 'autoUpdate',

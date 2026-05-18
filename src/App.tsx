@@ -63,10 +63,14 @@ const FamilyOS: React.FC = () => {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-black text-white p-4 gap-4">
       <nav className="w-24 md:w-32 flex flex-col items-center glass rounded-3xl py-8 space-y-4">
-        <div className="mb-4">
+        <div className="mb-2 flex flex-col items-center gap-1">
           <div className="w-12 h-12 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
             <span className="font-bold text-xl">F</span>
           </div>
+          <span className="text-[9px] font-mono text-gray-600 tracking-tight" title={__APP_COMMIT__}>
+            {__APP_VERSION__}
+            {__APP_COMMIT__ && ` · ${__APP_COMMIT__.slice(0, 7)}`}
+          </span>
         </div>
         {NAV_ITEMS.map((item) => (
           <button
