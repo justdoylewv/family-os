@@ -1,35 +1,30 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { google } from 'googleapis';
-import { requireAuth } from '../../_lib/auth';
+import { randomBytes } from 'node:crypto';
+import { requireAuth, getAdminClient } from '../../_lib/auth';
+import { SCOPES, oauthClient, redirectUriFor, saveConnection } from '../../_lib/google';
 
+/** Starts the one-time Google sign-in. The state value ties the callback to this request. */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
-
   const user = await requireAuth(req, res);
   if (!user) return;
-
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
-    res.status(500).json({ error: 'Google OAuth env vars not configured' });
-    return;
+  try {
+    const state = randomBytes(24).toString('hex');
+    await saveConnection(getAdminClient()!, {
+      oauth_state: state,
+      oauth_state_expires: new Date(Date.now() + 10 * 60000).toISOString(),
+    });
+    const url = oauthClient(redirectUriFor(req)).generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: SCOPES,
+      state,
+    });
+    res.status(200).json({ url });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Could not start Google sign-in' });
   }
-
-  const redirectUri = (req.query.redirectUri as string | undefined) ?? '';
-  if (!redirectUri) {
-    res.status(400).json({ error: 'Missing redirectUri' });
-    return;
-  }
-
-  const oauth = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-  const url = oauth.generateAuthUrl({
-    access_type: 'offline',
-    scope: ['https://www.googleapis.com/auth/calendar.readonly'],
-    prompt: 'consent',
-  });
-
-  res.status(200).json({ url });
 }

@@ -14,6 +14,7 @@ import { supabaseConfigured } from './lib/supabase';
 import { signOut, useSession } from './lib/auth';
 import { useBootstrapStores } from './lib/db';
 import { useFullscreen, useWakeLock } from './lib/kiosk';
+import { useGoogleCalendarSync } from './lib/googleCalendar';
 
 const App: React.FC = () => {
   const { session, loading } = useSession();
@@ -36,6 +37,7 @@ const App: React.FC = () => {
 const FamilyOS: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
   useBootstrapStores();
+  useGoogleCalendarSync();
   const fullscreen = useFullscreen();
   useWakeLock(true);
 

@@ -108,3 +108,23 @@ A native iPad/Mac app build comes in a later phase using Tauri or Capacitor.
 - **"Hey Siri, add groceries"** (each iPhone): Shortcuts app → new shortcut "Add groceries" →
   **Dictate Text** → **Get Contents of URL** (`https://<your-app>/api/add-groceries`, POST,
   JSON body: `token` = your `SHORTCUT_TOKEN`, `text` = Dictated Text) → **Speak Text** (Contents of URL).
+
+## Google Calendar (two-way sync)
+
+The app keeps the family's Google Calendar in sync on its own: new, changed and deleted events
+flow in every 10 minutes while the app is open, and events added in Family OS go onto Google
+Calendar. The Google sign-in is stored on the server (Supabase, server-only table), so it never
+expires on the tablet. Categories and family members you set in the app are kept on every sync.
+
+One-time setup:
+
+1. **Supabase → SQL editor:** run [`supabase/migrations/20261011_google_calendar_sync.sql`](supabase/migrations/20261011_google_calendar_sync.sql).
+2. **Google Cloud Console** → your OAuth client: the redirect URI must be
+   `https://<your-app>/api/auth/google/callback`, and the **Google Calendar API** must be enabled.
+   The app asks for calendar read access plus permission to add events.
+3. **Vercel:** `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` set.
+4. In the app: **Calendar → Connect Google**, sign in with the account that has the family calendar.
+   It picks the calendar with "Family" in its name (the Maurer Family calendar) automatically.
+
+Optional backup sync when no screen is open: set `CRON_SECRET` in Vercel and add a cron for
+`/api/calendar/sync` in `vercel.json`.

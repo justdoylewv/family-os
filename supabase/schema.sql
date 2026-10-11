@@ -21,8 +21,26 @@ create table if not exists events (
   google_event_id text,
   created_at timestamptz not null default now()
 );
-create unique index if not exists events_google_event_id_idx
-  on events (google_event_id) where google_event_id is not null;
+alter table events add column if not exists start_at timestamptz;
+alter table events add column if not exists end_at timestamptz;
+alter table events add column if not exists end_date date;
+alter table events add column if not exists all_day boolean not null default true;
+alter table events add column if not exists location text not null default '';
+create unique index if not exists events_google_event_id_key on events (google_event_id);
+
+-- Google Calendar connection (server-only: RLS on, no policies).
+create table if not exists google_connection (
+  id text primary key default 'family',
+  refresh_token text,
+  calendar_id text,
+  calendar_name text,
+  time_zone text,
+  oauth_state text,
+  oauth_state_expires timestamptz,
+  last_synced_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+alter table google_connection enable row level security;
 
 create table if not exists groceries (
   id uuid primary key default gen_random_uuid(),

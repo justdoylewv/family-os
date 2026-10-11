@@ -22,6 +22,12 @@ export interface CalendarEvent {
   category: EventCategory;
   assigned_to_member_id?: string | null;
   google_event_id?: string | null;
+  /** Filled in for events from Google Calendar. */
+  start_at?: string | null;
+  end_at?: string | null;
+  end_date?: string | null;
+  all_day?: boolean;
+  location?: string;
 }
 
 export interface GroceryItem {
