@@ -137,3 +137,21 @@ Optional backup sync when no screen is open: set `CRON_SECRET` in Vercel and add
   with the clock and what's next; a tap brings the app back. The **Photos** button starts it any time.
   Set it up in **Info Hub → Admin Mode → Photo slideshow** by pasting a shared Google Photos album
   link (Google Photos → album → Share → Create link). Photos added to the album show up within a few hours.
+
+## Money: bills & subscriptions
+
+A register of every recurring payment: amount, how often, a due date, autopay or not, which
+card or account pays it (last four only), and which email the account is under. The page shows
+the true monthly total, what's due in the next 30 days, overdue manual bills (with **Mark paid**),
+and yearly renewals coming up in the next 60 days. It sits behind Admin Mode so finances aren't on
+the family-room wall. Run [`supabase/migrations/20261011_bills.sql`](supabase/migrations/20261011_bills.sql) once.
+
+Logins and passwords belong in a family password manager (1Password Families, Bitwarden), never in the app.
+Next step once the family email exists: a daily inbox reader that fills this register from receipts
+and renewal emails and flags new subscriptions and price increases.
+
+## Database changes to run (in order)
+
+1. `supabase/migrations/20261011_google_calendar_sync.sql`
+2. `supabase/migrations/20261011_message_board.sql`
+3. `supabase/migrations/20261011_bills.sql`

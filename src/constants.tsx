@@ -1,4 +1,4 @@
-import { StickyNote, LayoutDashboard, Calendar, ShoppingCart, Utensils, Info, Trophy, Users } from 'lucide-react';
+import { Wallet, StickyNote, LayoutDashboard, Calendar, ShoppingCart, Utensils, Info, Trophy, Users } from 'lucide-react';
 import type { EventCategory, View } from './types';
 
 export const NAV_ITEMS = [
@@ -9,6 +9,7 @@ export const NAV_ITEMS = [
   { id: 'chores' as View, label: 'Chores', icon: <Trophy size={28} /> },
   { id: 'meals' as View, label: 'Meals', icon: <Utensils size={28} /> },
   { id: 'members' as View, label: 'Family', icon: <Users size={28} /> },
+  { id: 'money' as View, label: 'Money', icon: <Wallet size={28} /> },
   { id: 'info' as View, label: 'Info Hub', icon: <Info size={28} /> },
 ];
 

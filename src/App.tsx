@@ -10,6 +10,7 @@ import MealsView from './components/MealsView';
 import InfoHub from './components/InfoHub';
 import MembersView from './components/MembersView';
 import BoardView from './components/BoardView';
+import MoneyView from './components/MoneyView';
 import IdleSlideshow from './components/IdleSlideshow';
 import LoginGate from './components/LoginGate';
 import { supabaseConfigured } from './lib/supabase';
@@ -60,6 +61,8 @@ const FamilyOS: React.FC = () => {
         return <MembersView />;
       case 'board':
         return <BoardView />;
+      case 'money':
+        return <MoneyView />;
       case 'info':
         return <InfoHub />;
       default:

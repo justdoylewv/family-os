@@ -79,6 +79,24 @@ export interface Note {
   created_at?: string;
 }
 
-export type View = 'dashboard' | 'calendar' | 'groceries' | 'meals' | 'info' | 'chores' | 'members' | 'board';
+export type Cadence = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
+export interface Bill {
+  id: string;
+  name: string;
+  amount: number;
+  cadence: Cadence;
+  anchor_date: string;
+  autopay: boolean;
+  pay_from: string;
+  category: string;
+  account_email: string;
+  website: string;
+  notes: string;
+  last_paid?: string | null;
+  active: boolean;
+}
+
+export type View = 'dashboard' | 'calendar' | 'groceries' | 'meals' | 'info' | 'chores' | 'members' | 'board' | 'money';
 
 export type CalendarViewMode = 'day' | 'week' | 'month';
