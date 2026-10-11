@@ -25,7 +25,7 @@ const MealsView: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-bold">Weekly Meal Planner</h2>
+        <h2 className="text-2xl md:text-3xl font-bold">Weekly Meal Planner</h2>
         <div className="flex items-center gap-2 text-yellow-500">
           <Star size={20} fill="currentColor" />
           <span className="font-bold text-sm uppercase tracking-widest">Master Menu</span>

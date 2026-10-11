@@ -89,7 +89,7 @@ const ChoresView: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full relative">
       <div className="lg:col-span-8 flex flex-col">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-4xl font-bold flex items-center gap-4">
+          <h2 className="text-2xl md:text-4xl font-bold flex items-center gap-4">
             Family Chore Chart
             <span className="text-sm bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20 font-bold uppercase tracking-widest hidden sm:block">
               Earn Points
@@ -128,7 +128,7 @@ const ChoresView: React.FC = () => {
         )}
 
         <div className="glass rounded-3xl p-6 flex flex-col gap-4 mb-8 shadow-xl border-white/10">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <input
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
@@ -138,7 +138,7 @@ const ChoresView: React.FC = () => {
             />
             <button
               onClick={handleAddTask}
-              className="bg-blue-600 px-10 rounded-2xl hover:bg-blue-500 transition-transform active:scale-95 shrink-0 flex items-center justify-center shadow-lg shadow-blue-900/20 font-bold"
+              className="bg-blue-600 px-10 py-4 sm:py-0 rounded-2xl hover:bg-blue-500 transition-transform active:scale-95 shrink-0 flex items-center justify-center shadow-lg shadow-blue-900/20 font-bold"
             >
               Assign
             </button>

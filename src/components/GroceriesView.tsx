@@ -157,7 +157,7 @@ const GroceriesView: React.FC = () => {
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-        <h2 className="text-4xl font-bold">Groceries</h2>
+        <h2 className="text-2xl md:text-4xl font-bold">Groceries</h2>
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={() => camRef.current?.click()}
@@ -238,7 +238,7 @@ const GroceriesView: React.FC = () => {
 
       {notice && <p className="text-sm text-blue-300 font-semibold mb-3 ml-2" role="status">{notice}</p>}
 
-      <div className="flex-1 overflow-y-auto space-y-6 pr-4">
+      <div className="flex-1 overflow-y-auto space-y-6 md:pr-4">
         {AISLES.map((aisle) => {
           const items = displayedItems.filter((g) => (AISLES.includes(g.aisle) ? g.aisle : 'Other') === aisle);
           if (items.length === 0) return null;

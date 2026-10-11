@@ -44,7 +44,7 @@ const BoardView: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-        <h2 className="text-4xl font-bold">Message Board</h2>
+        <h2 className="text-2xl md:text-4xl font-bold">Message Board</h2>
         <div className="flex gap-3">
           <button onClick={() => setMode('doodle')} className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 font-bold flex items-center gap-2">
             <Pencil size={20} /> Doodle

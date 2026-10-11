@@ -192,7 +192,7 @@ const CalendarView: React.FC = () => {
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div className="flex items-center gap-4 flex-wrap">
-          <h2 className="text-3xl font-bold">
+          <h2 className="text-2xl md:text-3xl font-bold">
             {titleText} <span className="text-gray-500">{titleSub}</span>
           </h2>
           <div className="flex gap-2">
@@ -223,10 +223,10 @@ const CalendarView: React.FC = () => {
             ))}
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-2 md:gap-4 flex-wrap">
           <button
             onClick={handleToggleRecording}
-            className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-bold transition-all shadow-lg ${
+            className={`flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 rounded-2xl font-bold transition-all shadow-lg ${
               isRecording
                 ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-600/20'
                 : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'
@@ -239,7 +239,7 @@ const CalendarView: React.FC = () => {
             onClick={() => void (gcal.connected ? gcal.sync() : gcal.connect())}
             disabled={isSyncing || gcal.syncing}
             title={gcal.error || (gcal.connected ? `Synced ${agoLabel(gcal.lastSyncedAt)}. Tap to sync now.` : 'Connect the family Google Calendar')}
-            className={`bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-2xl flex items-center gap-3 font-bold transition-all text-left ${isSyncing || gcal.syncing ? 'opacity-60' : ''}`}
+            className={`bg-white/10 hover:bg-white/20 text-white px-4 md:px-6 py-3 rounded-2xl flex items-center gap-3 font-bold transition-all text-left ${isSyncing || gcal.syncing ? 'opacity-60' : ''}`}
           >
             <RefreshCw size={22} className={isSyncing || gcal.syncing ? 'animate-spin' : ''} />
             {gcal.connected ? (
@@ -257,7 +257,7 @@ const CalendarView: React.FC = () => {
           </button>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-4 rounded-2xl flex items-center gap-3 font-bold transition-all transform active:scale-95 shadow-lg shadow-blue-600/20"
+            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 md:px-6 md:py-4 rounded-2xl flex items-center gap-3 font-bold transition-all transform active:scale-95 shadow-lg shadow-blue-600/20"
           >
             <Plus size={24} />
             Add Event
@@ -513,45 +513,43 @@ const WeekGrid: React.FC<{
   const today = todayLocalDate();
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  // One block per day: seven columns on tablets, a stacked day-by-day list on phones.
   return (
-    <div className="flex-1 grid grid-cols-7 gap-px bg-white/10 rounded-3xl overflow-hidden border border-white/10">
+    <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-px bg-white/10 rounded-3xl overflow-hidden border border-white/10">
       {days.map((d) => {
         const dateStr = formatDate(d);
         const isToday = dateStr === today;
-        return (
-          <div key={`h-${dateStr}`} className="bg-white/5 p-4 text-center">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{format(d, 'EEE')}</p>
-            <p
-              className={`text-2xl font-bold mt-1 inline-flex items-center justify-center w-10 h-10 rounded-full ${
-                isToday ? 'bg-blue-600 text-white' : 'text-white'
-              }`}
-            >
-              {format(d, 'd')}
-            </p>
-          </div>
-        );
-      })}
-      {days.map((d) => {
-        const dateStr = formatDate(d);
         const dayEvents = events.filter((e) => occursOn(e, dateStr)).sort((a, b) => (a.start_at ?? '').localeCompare(b.start_at ?? ''));
         return (
           <button
-            key={`b-${dateStr}`}
+            key={dateStr}
             onClick={() => onPickDate(d)}
-            className="bg-white/5 hover:bg-white/10 transition-colors p-3 space-y-2 text-left min-h-[400px]"
+            className="bg-white/5 hover:bg-white/10 transition-colors text-left flex md:flex-col gap-3 p-3 md:p-0 md:min-h-[460px]"
           >
-            {dayEvents.length === 0 ? (
-              <p className="text-gray-700 text-xs italic">No events</p>
-            ) : (
-              dayEvents.map((event) => (
-                <EventChip
-                  key={event.id}
-                  event={event}
-                  member={event.assigned_to_member_id ? memberById.get(event.assigned_to_member_id) : undefined}
-                  size="md"
-                />
-              ))
-            )}
+            <div className="md:p-4 md:text-center md:border-b md:border-white/10 w-14 md:w-auto shrink-0">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{format(d, 'EEE')}</p>
+              <p
+                className={`text-xl md:text-2xl font-bold mt-1 inline-flex items-center justify-center w-10 h-10 rounded-full ${
+                  isToday ? 'bg-blue-600 text-white' : 'text-white'
+                }`}
+              >
+                {format(d, 'd')}
+              </p>
+            </div>
+            <div className="flex-1 min-w-0 space-y-2 md:p-3 self-center md:self-stretch">
+              {dayEvents.length === 0 ? (
+                <p className="text-gray-600 text-xs italic">No events</p>
+              ) : (
+                dayEvents.map((event) => (
+                  <EventChip
+                    key={event.id}
+                    event={event}
+                    member={event.assigned_to_member_id ? memberById.get(event.assigned_to_member_id) : undefined}
+                    size="md"
+                  />
+                ))
+              )}
+            </div>
           </button>
         );
       })}

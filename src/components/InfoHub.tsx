@@ -44,7 +44,7 @@ const InfoHub: React.FC = () => {
   return (
     <div className="space-y-10 relative">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">Information Hub</h2>
+        <h2 className="text-2xl md:text-3xl font-bold">Information Hub</h2>
         <button
           onClick={admin.requestToggle}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors ${admin.isAdmin ? 'bg-red-500/20 text-red-400' : 'bg-white/10 hover:bg-white/20'}`}

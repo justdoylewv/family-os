@@ -113,7 +113,7 @@ const MoneyView: React.FC = () => {
   return (
     <div className="space-y-8 pb-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h2 className="text-4xl font-bold">Money</h2>
+        <h2 className="text-2xl md:text-4xl font-bold">Money</h2>
         <div className="flex gap-3">
           <button onClick={() => setEditing({ id: null, draft: { ...EMPTY, anchor_date: today } })} className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 font-bold flex items-center gap-2">
             <Plus size={20} /> Bill or subscription
@@ -133,7 +133,7 @@ const MoneyView: React.FC = () => {
         ].map(([label, value, sub]) => (
           <div key={label} className="glass rounded-3xl p-5">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</p>
-            <p className="text-3xl font-bold mt-2 tabular-nums">{value}</p>
+            <p className="text-2xl md:text-3xl font-bold mt-2 tabular-nums">{value}</p>
             <p className="text-sm text-gray-500 mt-1">{sub}</p>
           </div>
         ))}
@@ -144,17 +144,17 @@ const MoneyView: React.FC = () => {
           <h3 className="text-xl font-bold flex items-center gap-2 mb-4"><AlertTriangle className="text-amber-400" size={22} /> Needs attention</h3>
           <div className="space-y-2">
             {summary.overdue.map(({ b, date }) => (
-              <div key={`o-${b.id}`} className="flex items-center gap-4 p-3 rounded-2xl bg-red-500/10">
-                <span className="text-red-300 font-bold w-28 shrink-0">Overdue</span>
-                <span className="flex-1 font-semibold">{b.name} · due {prettyDate(date)}</span>
+              <div key={`o-${b.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 rounded-2xl bg-red-500/10">
+                <span className="text-red-300 font-bold md:w-28 shrink-0">Overdue</span>
+                <span className="flex-1 min-w-[10rem] font-semibold">{b.name} · due {prettyDate(date)}</span>
                 <span className="tabular-nums font-bold">{money(Number(b.amount))}</span>
                 <button onClick={() => markPaid(b, date)} className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 font-bold">Mark paid</button>
               </div>
             ))}
             {summary.renewals.map(({ b, date }) => (
-              <div key={`r-${b.id}`} className="flex items-center gap-4 p-3 rounded-2xl bg-amber-500/10">
-                <span className="text-amber-300 font-bold w-28 shrink-0">Renews</span>
-                <span className="flex-1 font-semibold">{b.name} · {prettyDate(date)} ({daysUntil(date, today)} days)</span>
+              <div key={`r-${b.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 rounded-2xl bg-amber-500/10">
+                <span className="text-amber-300 font-bold md:w-28 shrink-0">Renews</span>
+                <span className="flex-1 min-w-[10rem] font-semibold">{b.name} · {prettyDate(date)} ({daysUntil(date, today)} days)</span>
                 <span className="tabular-nums font-bold">{money(Number(b.amount))}</span>
               </div>
             ))}
@@ -172,7 +172,7 @@ const MoneyView: React.FC = () => {
               const paid = !!b.last_paid && b.last_paid >= date;
               return (
                 <div key={`${b.id}-${date}`} className="flex items-center gap-4 py-3">
-                  <span className="w-32 shrink-0 text-gray-300 font-semibold">{daysUntil(date, today) === 0 ? 'Today' : prettyDate(date)}</span>
+                  <span className="w-20 md:w-32 shrink-0 text-gray-300 font-semibold text-sm md:text-base">{daysUntil(date, today) === 0 ? 'Today' : prettyDate(date)}</span>
                   <span className="flex-1 font-semibold min-w-0 truncate">{b.name}</span>
                   {b.autopay ? (
                     <span className="text-xs font-bold uppercase tracking-wider text-green-300 bg-green-500/10 px-2 py-1 rounded-lg flex items-center gap-1"><Repeat size={12} /> Autopay</span>
@@ -181,7 +181,7 @@ const MoneyView: React.FC = () => {
                   ) : (
                     <button onClick={() => markPaid(b, date)} className="text-sm px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 font-bold">Mark paid</button>
                   )}
-                  <span className="w-24 text-right tabular-nums font-bold">{money(Number(b.amount))}</span>
+                  <span className="w-20 md:w-24 text-right tabular-nums font-bold">{money(Number(b.amount))}</span>
                 </div>
               );
             })}

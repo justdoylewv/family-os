@@ -28,7 +28,7 @@ const MembersView: React.FC = () => {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <Users className="text-blue-400" size={32} />
-          <h2 className="text-3xl font-bold">Family</h2>
+          <h2 className="text-2xl md:text-3xl font-bold">Family</h2>
         </div>
         <button
           onClick={admin.requestToggle}
