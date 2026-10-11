@@ -21,8 +21,26 @@ create table if not exists events (
   google_event_id text,
   created_at timestamptz not null default now()
 );
-create unique index if not exists events_google_event_id_idx
-  on events (google_event_id) where google_event_id is not null;
+alter table events add column if not exists start_at timestamptz;
+alter table events add column if not exists end_at timestamptz;
+alter table events add column if not exists end_date date;
+alter table events add column if not exists all_day boolean not null default true;
+alter table events add column if not exists location text not null default '';
+create unique index if not exists events_google_event_id_key on events (google_event_id);
+
+-- Google Calendar connection (server-only: RLS on, no policies).
+create table if not exists google_connection (
+  id text primary key default 'family',
+  refresh_token text,
+  calendar_id text,
+  calendar_name text,
+  time_zone text,
+  oauth_state text,
+  oauth_state_expires timestamptz,
+  last_synced_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+alter table google_connection enable row level security;
 
 create table if not exists groceries (
   id uuid primary key default gen_random_uuid(),
@@ -70,6 +88,33 @@ create table if not exists info_contacts (
   created_at timestamptz not null default now()
 );
 
+create table if not exists notes (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null default 'note',
+  text text not null default '',
+  color text not null default 'yellow',
+  image text,
+  member_id uuid references members(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists bills (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  amount numeric(10,2) not null default 0,
+  cadence text not null default 'monthly',
+  anchor_date date not null,
+  autopay boolean not null default false,
+  pay_from text not null default '',
+  category text not null default 'Other',
+  account_email text not null default '',
+  website text not null default '',
+  notes text not null default '',
+  last_paid date,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
 -- Row-level security: lock every table to authenticated requests.
 alter table members        enable row level security;
 alter table events         enable row level security;
@@ -79,12 +124,14 @@ alter table rewards        enable row level security;
 alter table meals          enable row level security;
 alter table settings       enable row level security;
 alter table info_contacts  enable row level security;
+alter table notes          enable row level security;
+alter table bills          enable row level security;
 
 do $$
 declare t text;
 begin
   for t in select unnest(array[
-    'members','events','groceries','chores','rewards','meals','settings','info_contacts'
+    'members','events','groceries','chores','rewards','meals','settings','info_contacts','notes','bills'
   ]) loop
     execute format('drop policy if exists "family rw" on %I', t);
     execute format('create policy "family rw" on %I for all to authenticated using (true) with check (true)', t);
@@ -98,4 +145,4 @@ on conflict (day) do nothing;
 
 -- Realtime: publish change events so the kitchen/living-room tablets stay in sync.
 alter publication supabase_realtime add table
-  members, events, groceries, chores, rewards, meals, settings, info_contacts;
+  members, events, groceries, chores, rewards, meals, settings, info_contacts, notes, bills;

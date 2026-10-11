@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, Mic, Square } from 'lucide-react';
 import {
   addDays,
@@ -15,6 +15,7 @@ import {
 import { CATEGORY_COLORS, EVENT_CATEGORIES } from '../constants';
 import { useEventsStore, useMembersStore, todayLocalDate } from '../lib/db';
 import { authedFetch } from '../lib/auth';
+import { createOnGoogle, occursOn, timeLabel, useGoogleCalendar } from '../lib/googleCalendar';
 import type { CalendarViewMode, EventCategory } from '../types';
 
 const formatDate = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -24,6 +25,27 @@ interface NewEventDraft {
   category: EventCategory;
   date: string;
   assigned_to_member_id: string | null;
+  allDay: boolean;
+  startTime: string;
+  endTime: string;
+  location: string;
+}
+
+const EMPTY_DRAFT: NewEventDraft = {
+  title: '',
+  category: 'family',
+  date: '',
+  assigned_to_member_id: null,
+  allDay: true,
+  startTime: '17:00',
+  endTime: '18:00',
+  location: '',
+};
+
+function agoLabel(iso: string | null) {
+  if (!iso) return '';
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  return mins < 1 ? 'just now' : mins < 60 ? `${mins}m ago` : `${Math.round(mins / 60)}h ago`;
 }
 
 const CalendarView: React.FC = () => {
@@ -35,70 +57,14 @@ const CalendarView: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
   const [showModal, setShowModal] = useState(false);
-  const [draft, setDraft] = useState<NewEventDraft>({
-    title: '',
-    category: 'family',
-    date: '',
-    assigned_to_member_id: null,
-  });
+  const [draft, setDraft] = useState<NewEventDraft>(EMPTY_DRAFT);
+  const [saving, setSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const gcal = useGoogleCalendar();
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   const memberById = new Map(members.map((m) => [m.id, m]));
-
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== 'OAUTH_AUTH_SUCCESS') return;
-
-      setIsSyncing(true);
-      try {
-        const res = await authedFetch('/api/calendar/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tokens: event.data.tokens }),
-        });
-        const data = await res.json();
-        if (data.events) {
-          const mapped = (data.events as Array<{ id: string; summary?: string; start?: { date?: string; dateTime?: string } }>)
-            .map((ge) => ({
-              title: ge.summary || 'Busy',
-              date: (ge.start?.date || ge.start?.dateTime)?.split('T')[0] || '',
-              category: 'family' as EventCategory,
-              google_event_id: ge.id,
-              assigned_to_member_id: null,
-            }))
-            .filter((e) => e.date);
-          await addManyEvents(mapped);
-          alert(`Synced ${mapped.length} events from Google Calendar`);
-        } else if (data.error) {
-          alert('Error syncing calendar: ' + data.error);
-        }
-      } catch (err) {
-        console.error('Failed to fetch calendar', err);
-        alert('Failed to sync calendar data.');
-      } finally {
-        setIsSyncing(false);
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [addManyEvents]);
-
-  const handleConnectGoogle = async () => {
-    try {
-      const redirectUri = `${window.location.origin}/api/auth/google/callback`;
-      const response = await authedFetch(`/api/auth/google/url?redirectUri=${encodeURIComponent(redirectUri)}`);
-      if (!response.ok) throw new Error('Failed to get auth URL.');
-      const { url } = await response.json();
-      const authWindow = window.open(url, 'oauth_popup', 'width=600,height=700');
-      if (!authWindow) alert('Please allow popups for this site to connect Google Calendar.');
-    } catch (err) {
-      console.error('OAuth error:', err);
-      alert('Failed to start Google sign-in. Check OAuth env vars in Vercel.');
-    }
-  };
 
   const handleToggleRecording = async () => {
     if (isRecording) {
@@ -141,7 +107,11 @@ const CalendarView: React.FC = () => {
                     : 'family') as EventCategory,
                   assigned_to_member_id: null,
                 }));
-              await addManyEvents(valid);
+              if (gcal.connected) {
+                for (const v of valid) await createOnGoogle({ ...v, allDay: true });
+              } else {
+                await addManyEvents(valid);
+              }
               alert(`Added ${valid.length} events from voice!`);
             }
           } catch (err) {
@@ -187,15 +157,35 @@ const CalendarView: React.FC = () => {
   const titleSub = viewMode === 'month' ? format(currentDate, 'yyyy') : format(weekStart, 'yyyy');
 
   const handleAddEvent = async () => {
-    if (!draft.title || !draft.date) return;
-    await addEvent({
-      title: draft.title,
-      date: draft.date,
-      category: draft.category,
-      assigned_to_member_id: draft.assigned_to_member_id,
-    });
-    setDraft({ title: '', category: 'family', date: '', assigned_to_member_id: null });
-    setShowModal(false);
+    if (!draft.title || !draft.date || saving) return;
+    setSaving(true);
+    try {
+      // Goes onto the family Google Calendar when connected; otherwise stays in Family OS only.
+      const onGoogle = await createOnGoogle({
+        title: draft.title,
+        date: draft.date,
+        allDay: draft.allDay,
+        startTime: draft.startTime,
+        endTime: draft.endTime,
+        location: draft.location,
+        category: draft.category,
+        assigned_to_member_id: draft.assigned_to_member_id,
+      });
+      if (!onGoogle) {
+        await addEvent({
+          title: draft.title,
+          date: draft.date,
+          category: draft.category,
+          assigned_to_member_id: draft.assigned_to_member_id,
+        });
+      }
+      setDraft(EMPTY_DRAFT);
+      setShowModal(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not save the event.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -246,12 +236,24 @@ const CalendarView: React.FC = () => {
             {isRecording ? 'Stop Recording' : 'Voice Add'}
           </button>
           <button
-            onClick={handleConnectGoogle}
-            disabled={isSyncing}
-            className={`bg-white/10 hover:bg-white/20 text-white px-6 py-4 rounded-2xl flex items-center gap-3 font-bold transition-all ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => void (gcal.connected ? gcal.sync() : gcal.connect())}
+            disabled={isSyncing || gcal.syncing}
+            title={gcal.error || (gcal.connected ? `Synced ${agoLabel(gcal.lastSyncedAt)}. Tap to sync now.` : 'Connect the family Google Calendar')}
+            className={`bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-2xl flex items-center gap-3 font-bold transition-all text-left ${isSyncing || gcal.syncing ? 'opacity-60' : ''}`}
           >
-            <RefreshCw size={24} className={isSyncing ? 'animate-spin' : ''} />
-            {isSyncing ? 'Processing…' : 'Sync Google'}
+            <RefreshCw size={22} className={isSyncing || gcal.syncing ? 'animate-spin' : ''} />
+            {gcal.connected ? (
+              <span className="leading-tight">
+                {gcal.calendarName || 'Google Calendar'}
+                <span className={`block text-[11px] font-semibold ${gcal.error ? 'text-red-300' : 'text-gray-400'}`}>
+                  {gcal.error ? 'Sync problem: tap to retry' : gcal.syncing ? 'Syncing…' : `Synced ${agoLabel(gcal.lastSyncedAt)}`}
+                </span>
+              </span>
+            ) : isSyncing ? (
+              'Processing…'
+            ) : (
+              'Connect Google'
+            )}
           </button>
           <button
             onClick={() => setShowModal(true)}
@@ -293,8 +295,9 @@ const CalendarView: React.FC = () => {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass rounded-3xl p-8 w-full max-w-lg border border-white/20 shadow-2xl">
-            <h3 className="text-2xl font-bold mb-6">New Family Event</h3>
+          <div className="glass rounded-3xl p-8 w-full max-w-lg max-h-[92vh] overflow-y-auto border border-white/20 shadow-2xl">
+            <h3 className="text-2xl font-bold mb-2">New Family Event</h3>
+            <p className="text-sm text-gray-400 mb-6">{gcal.connected ? `Adds to ${gcal.calendarName || 'Google Calendar'}.` : 'Saved in Family OS. Connect Google to add it there too.'}</p>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Event Name</label>
@@ -313,6 +316,53 @@ const CalendarView: React.FC = () => {
                   value={draft.date}
                   onChange={(e) => setDraft((prev) => ({ ...prev, date: e.target.value }))}
                   className="w-full bg-white/10 rounded-2xl p-4 outline-none border border-white/10 focus:border-blue-500 transition-colors"
+                />
+              </div>
+              <div className="flex items-end gap-3 flex-wrap">
+                <label className="flex items-center gap-2 py-4 pr-2 font-semibold text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={draft.allDay}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, allDay: e.target.checked }))}
+                    className="w-5 h-5 accent-blue-500"
+                  />
+                  All day
+                </label>
+                {!draft.allDay && (
+                  <>
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Starts</label>
+                      <input
+                        type="time"
+                        value={draft.startTime}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const h = Math.min(23, Number(v.slice(0, 2)) + 1);
+                          setDraft((prev) => ({ ...prev, startTime: v, endTime: `${String(h).padStart(2, '0')}:${v.slice(3, 5)}` }));
+                        }}
+                        className="w-full bg-white/10 rounded-2xl p-4 outline-none border border-white/10 focus:border-blue-500"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Ends</label>
+                      <input
+                        type="time"
+                        value={draft.endTime}
+                        onChange={(e) => setDraft((prev) => ({ ...prev, endTime: e.target.value }))}
+                        className="w-full bg-white/10 rounded-2xl p-4 outline-none border border-white/10 focus:border-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Where (optional)</label>
+                <input
+                  type="text"
+                  value={draft.location}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, location: e.target.value }))}
+                  className="w-full bg-white/10 rounded-2xl p-4 outline-none border border-white/10 focus:border-blue-500 transition-colors"
+                  placeholder="e.g., Hilliard Rec Fields"
                 />
               </div>
               <div>
@@ -359,9 +409,10 @@ const CalendarView: React.FC = () => {
                 </button>
                 <button
                   onClick={handleAddEvent}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-bold shadow-lg shadow-blue-600/20"
+                  disabled={saving}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 py-4 rounded-2xl font-bold shadow-lg shadow-blue-600/20"
                 >
-                  Save Event
+                  {saving ? 'Saving…' : gcal.connected ? 'Save to Google Calendar' : 'Save Event'}
                 </button>
               </div>
             </div>
@@ -389,6 +440,7 @@ const EventChip: React.FC<{ event: CalendarEvent; member?: Member; size?: 'sm' |
           {member.name[0]}
         </span>
       )}
+      {timeLabel(event) && <span className="shrink-0 opacity-80">{timeLabel(event)}</span>}
       <span className="truncate">{event.title}</span>
     </div>
   );
@@ -420,7 +472,7 @@ const MonthGrid: React.FC<{
         const day = i + 1;
         const date = new Date(year, month, day);
         const dateStr = formatDate(date);
-        const dayEvents = events.filter((e) => e.date === dateStr);
+        const dayEvents = events.filter((e) => occursOn(e, dateStr)).sort((a, b) => (a.start_at ?? '').localeCompare(b.start_at ?? ''));
         const isToday = dateStr === today;
 
         return (
@@ -481,7 +533,7 @@ const WeekGrid: React.FC<{
       })}
       {days.map((d) => {
         const dateStr = formatDate(d);
-        const dayEvents = events.filter((e) => e.date === dateStr);
+        const dayEvents = events.filter((e) => occursOn(e, dateStr)).sort((a, b) => (a.start_at ?? '').localeCompare(b.start_at ?? ''));
         return (
           <button
             key={`b-${dateStr}`}
@@ -513,7 +565,7 @@ const DayList: React.FC<{
   memberById: Map<string, Member>;
 }> = ({ currentDate, events, memberById }) => {
   const dateStr = formatDate(currentDate);
-  const dayEvents = events.filter((e) => e.date === dateStr);
+  const dayEvents = events.filter((e) => occursOn(e, dateStr)).sort((a, b) => (a.start_at ?? '').localeCompare(b.start_at ?? ''));
   const isToday = isSameDay(currentDate, new Date());
 
   return (

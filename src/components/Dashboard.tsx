@@ -7,6 +7,7 @@ import {
   useSettingsStore,
   todayLocalDate,
 } from '../lib/db';
+import { occursOn, timeLabel } from '../lib/googleCalendar';
 
 const SCRATCHPAD_KEY = 'scratchpad';
 
@@ -48,7 +49,10 @@ const Dashboard: React.FC = () => {
   const todayWeekday = time.toLocaleDateString('en-US', { weekday: 'long' });
   const todaysMeal = meals.find((m) => m.day === todayWeekday);
   const today = todayLocalDate();
-  const todaysEvents = events.filter((e) => e.date === today).slice(0, 3);
+  const todaysEvents = events
+    .filter((e) => occursOn(e, today))
+    .sort((a, b) => (a.start_at ?? '').localeCompare(b.start_at ?? ''))
+    .slice(0, 4);
   const memberById = new Map(members.map((m) => [m.id, m]));
 
   return (
@@ -138,7 +142,7 @@ const Dashboard: React.FC = () => {
                   <div>
                     <p className="font-semibold leading-none mb-1">{event.title}</p>
                     <p className="text-[10px] text-gray-400 uppercase font-bold">
-                      {member ? member.name : event.category}
+                      {[timeLabel(event), member ? member.name : event.category].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                 </div>

@@ -22,6 +22,12 @@ export interface CalendarEvent {
   category: EventCategory;
   assigned_to_member_id?: string | null;
   google_event_id?: string | null;
+  /** Filled in for events from Google Calendar. */
+  start_at?: string | null;
+  end_at?: string | null;
+  end_date?: string | null;
+  all_day?: boolean;
+  location?: string;
 }
 
 export interface GroceryItem {
@@ -63,6 +69,34 @@ export interface Contact {
   sort_order?: number;
 }
 
-export type View = 'dashboard' | 'calendar' | 'groceries' | 'meals' | 'info' | 'chores' | 'members';
+export interface Note {
+  id: string;
+  kind: 'note' | 'doodle';
+  text: string;
+  color: string;
+  image?: string | null;
+  member_id?: string | null;
+  created_at?: string;
+}
+
+export type Cadence = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
+export interface Bill {
+  id: string;
+  name: string;
+  amount: number;
+  cadence: Cadence;
+  anchor_date: string;
+  autopay: boolean;
+  pay_from: string;
+  category: string;
+  account_email: string;
+  website: string;
+  notes: string;
+  last_paid?: string | null;
+  active: boolean;
+}
+
+export type View = 'dashboard' | 'calendar' | 'groceries' | 'meals' | 'info' | 'chores' | 'members' | 'board' | 'money';
 
 export type CalendarViewMode = 'day' | 'week' | 'month';

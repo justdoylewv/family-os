@@ -9,7 +9,9 @@ import type {
   CalendarEvent,
   GroceryItem,
   MealPlan,
+  Bill,
   Member,
+  Note,
   Reward,
 } from '../types';
 
@@ -21,7 +23,9 @@ type TableName =
   | 'rewards'
   | 'meals'
   | 'settings'
-  | 'info_contacts';
+  | 'info_contacts'
+  | 'notes'
+  | 'bills';
 
 const localKey = (t: TableName) => `family_${t}`;
 
@@ -627,6 +631,136 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
   },
 }));
 
+// ---- Message board notes ----
+
+interface NotesStore {
+  items: Note[];
+  loaded: boolean;
+  channel: RealtimeChannel | null;
+  init: () => Promise<void>;
+  add: (n: Omit<Note, 'id' | 'created_at'>) => Promise<void>;
+  remove: (id: string) => Promise<void>;
+}
+
+const NOTES_LIMIT = 60;
+
+export const useNotesStore = create<NotesStore>((set, get) => ({
+  items: [],
+  loaded: false,
+  channel: null,
+
+  async init() {
+    if (get().loaded) return;
+    if (!supabase) {
+      set({ items: loadLocal<Note[]>('notes', []), loaded: true });
+      return;
+    }
+    const sb = supabase;
+    const load = async () => {
+      const { data } = await sb.from('notes').select('*').order('created_at', { ascending: false }).limit(NOTES_LIMIT);
+      set({ items: (data as Note[]) ?? [], loaded: true });
+    };
+    await load();
+    const channel = sb
+      .channel('notes-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => void load())
+      .subscribe();
+    set({ channel });
+  },
+
+  async add(n) {
+    if (!supabase) {
+      const next = [{ ...n, id: makeId(), created_at: new Date().toISOString() }, ...get().items];
+      set({ items: next });
+      saveLocal('notes', next);
+      return;
+    }
+    const { error } = await supabase.from('notes').insert(n);
+    if (error) throw new Error(error.message);
+  },
+
+  async remove(id) {
+    if (!supabase) {
+      const next = get().items.filter((x) => x.id !== id);
+      set({ items: next });
+      saveLocal('notes', next);
+      return;
+    }
+    await supabase.from('notes').delete().eq('id', id);
+  },
+}));
+
+// ---- Bills & subscriptions ----
+
+interface BillsStore {
+  items: Bill[];
+  loaded: boolean;
+  channel: RealtimeChannel | null;
+  init: () => Promise<void>;
+  add: (b: Omit<Bill, 'id'>) => Promise<void>;
+  update: (id: string, patch: Partial<Bill>) => Promise<void>;
+  remove: (id: string) => Promise<void>;
+}
+
+const normalizeBill = (b: Bill): Bill => ({ ...b, amount: Number(b.amount) });
+
+export const useBillsStore = create<BillsStore>((set, get) => ({
+  items: [],
+  loaded: false,
+  channel: null,
+
+  async init() {
+    if (get().loaded) return;
+    if (!supabase) {
+      set({ items: loadLocal<Bill[]>('bills', []), loaded: true });
+      return;
+    }
+    const sb = supabase;
+    const load = async () => {
+      const { data } = await sb.from('bills').select('*').order('name', { ascending: true });
+      set({ items: ((data as Bill[]) ?? []).map(normalizeBill), loaded: true });
+    };
+    await load();
+    const channel = sb
+      .channel('bills-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' }, () => void load())
+      .subscribe();
+    set({ channel });
+  },
+
+  async add(b) {
+    if (!supabase) {
+      const next = [...get().items, { ...b, id: makeId() }];
+      set({ items: next });
+      saveLocal('bills', next);
+      return;
+    }
+    const { error } = await supabase.from('bills').insert(b);
+    if (error) throw new Error(error.message);
+  },
+
+  async update(id, patch) {
+    if (!supabase) {
+      const next = get().items.map((x) => (x.id === id ? { ...x, ...patch } : x));
+      set({ items: next });
+      saveLocal('bills', next);
+      return;
+    }
+    const { error } = await supabase.from('bills').update(patch).eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  async remove(id) {
+    if (!supabase) {
+      const next = get().items.filter((x) => x.id !== id);
+      set({ items: next });
+      saveLocal('bills', next);
+      return;
+    }
+    await supabase.from('bills').delete().eq('id', id);
+  },
+}));
+
 // ---- Bootstrap helper ----
 
 export function useBootstrapStores() {
@@ -638,6 +772,8 @@ export function useBootstrapStores() {
   const initMeals = useMealsStore((s) => s.init);
   const initSettings = useSettingsStore((s) => s.init);
   const initContacts = useContactsStore((s) => s.init);
+  const initNotes = useNotesStore((s) => s.init);
+  const initBills = useBillsStore((s) => s.init);
 
   useEffect(() => {
     void initMembers();
@@ -648,6 +784,8 @@ export function useBootstrapStores() {
     void initMeals();
     void initSettings();
     void initContacts();
+    void initNotes();
+    void initBills();
   }, [
     initMembers,
     initEvents,
@@ -657,6 +795,8 @@ export function useBootstrapStores() {
     initMeals,
     initSettings,
     initContacts,
+    initNotes,
+    initBills,
   ]);
 }
 
