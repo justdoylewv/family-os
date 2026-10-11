@@ -128,3 +128,12 @@ One-time setup:
 
 Optional backup sync when no screen is open: set `CRON_SECRET` in Vercel and add a cron for
 `/api/calendar/sync` in `vercel.json`.
+
+## Wall tablet: message board and photo slideshow
+
+- **Board:** sticky notes and finger-drawn doodles, each optionally signed by a family member.
+  Run [`supabase/migrations/20261011_message_board.sql`](supabase/migrations/20261011_message_board.sql) once.
+- **Photo slideshow:** after a few minutes untouched (default 3), family photos rotate full screen
+  with the clock and what's next; a tap brings the app back. The **Photos** button starts it any time.
+  Set it up in **Info Hub → Admin Mode → Photo slideshow** by pasting a shared Google Photos album
+  link (Google Photos → album → Share → Create link). Photos added to the album show up within a few hours.

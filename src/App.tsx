@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Loader2, LogOut, Maximize2, Minimize2 } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Images, Loader2, LogOut, Maximize2, Minimize2 } from 'lucide-react';
 import { NAV_ITEMS } from './constants';
 import type { View } from './types';
 import Dashboard from './components/Dashboard';
@@ -9,6 +9,8 @@ import ChoresView from './components/ChoresView';
 import MealsView from './components/MealsView';
 import InfoHub from './components/InfoHub';
 import MembersView from './components/MembersView';
+import BoardView from './components/BoardView';
+import IdleSlideshow from './components/IdleSlideshow';
 import LoginGate from './components/LoginGate';
 import { supabaseConfigured } from './lib/supabase';
 import { signOut, useSession } from './lib/auth';
@@ -38,6 +40,7 @@ const FamilyOS: React.FC = () => {
   const [activeView, setActiveView] = useState<View>('dashboard');
   useBootstrapStores();
   useGoogleCalendarSync();
+  const startSlideshow = useRef<(() => void) | null>(null);
   const fullscreen = useFullscreen();
   useWakeLock(true);
 
@@ -55,6 +58,8 @@ const FamilyOS: React.FC = () => {
         return <MealsView />;
       case 'members':
         return <MembersView />;
+      case 'board':
+        return <BoardView />;
       case 'info':
         return <InfoHub />;
       default:
@@ -64,7 +69,7 @@ const FamilyOS: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-black text-white p-4 gap-4">
-      <nav className="w-24 md:w-32 flex flex-col items-center glass rounded-3xl py-8 space-y-4">
+      <nav className="w-24 md:w-32 flex flex-col items-center glass rounded-3xl py-5 space-y-1.5 overflow-y-auto">
         <div className="mb-2 flex flex-col items-center gap-1">
           <div className="w-12 h-12 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
             <span className="font-bold text-xl">F</span>
@@ -78,7 +83,7 @@ const FamilyOS: React.FC = () => {
           <button
             key={item.id}
             onClick={() => setActiveView(item.id)}
-            className={`p-4 rounded-2xl transition-all duration-200 flex flex-col items-center gap-2 w-20 ${
+            className={`p-3 rounded-2xl transition-all duration-200 flex flex-col items-center gap-1.5 w-20 shrink-0 ${
               activeView === item.id
                 ? 'glass-active text-blue-400 shadow-inner'
                 : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -91,8 +96,16 @@ const FamilyOS: React.FC = () => {
           </button>
         ))}
         <button
+          onClick={() => startSlideshow.current?.()}
+          className="mt-auto shrink-0 p-3 rounded-2xl text-gray-500 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-2 w-20"
+          title="Family photos"
+        >
+          <Images size={22} />
+          <span className="text-[10px] font-medium uppercase tracking-wider">Photos</span>
+        </button>
+        <button
           onClick={() => void fullscreen.toggle()}
-          className="mt-auto p-4 rounded-2xl text-gray-500 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-2 w-20"
+          className="shrink-0 p-3 rounded-2xl text-gray-500 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-1.5 w-20"
           title={fullscreen.isFullscreen ? 'Exit full screen' : 'Kiosk mode'}
         >
           {fullscreen.isFullscreen ? <Minimize2 size={22} /> : <Maximize2 size={22} />}
@@ -103,7 +116,7 @@ const FamilyOS: React.FC = () => {
         {supabaseConfigured && (
           <button
             onClick={() => signOut()}
-            className="p-4 rounded-2xl text-gray-500 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-2 w-20"
+            className="shrink-0 p-3 rounded-2xl text-gray-500 hover:text-white hover:bg-white/5 transition-all flex flex-col items-center gap-1.5 w-20"
             title="Sign out"
           >
             <LogOut size={22} />
@@ -115,6 +128,7 @@ const FamilyOS: React.FC = () => {
       <main className="flex-1 glass rounded-3xl overflow-hidden relative">
         <div className="h-full w-full overflow-y-auto p-8">{renderContent()}</div>
       </main>
+      <IdleSlideshow startRef={startSlideshow} />
     </div>
   );
 };

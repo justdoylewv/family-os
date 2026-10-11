@@ -10,6 +10,7 @@ import type {
   GroceryItem,
   MealPlan,
   Member,
+  Note,
   Reward,
 } from '../types';
 
@@ -21,7 +22,8 @@ type TableName =
   | 'rewards'
   | 'meals'
   | 'settings'
-  | 'info_contacts';
+  | 'info_contacts'
+  | 'notes';
 
 const localKey = (t: TableName) => `family_${t}`;
 
@@ -627,6 +629,65 @@ export const useContactsStore = create<ContactsStore>((set, get) => ({
   },
 }));
 
+// ---- Message board notes ----
+
+interface NotesStore {
+  items: Note[];
+  loaded: boolean;
+  channel: RealtimeChannel | null;
+  init: () => Promise<void>;
+  add: (n: Omit<Note, 'id' | 'created_at'>) => Promise<void>;
+  remove: (id: string) => Promise<void>;
+}
+
+const NOTES_LIMIT = 60;
+
+export const useNotesStore = create<NotesStore>((set, get) => ({
+  items: [],
+  loaded: false,
+  channel: null,
+
+  async init() {
+    if (get().loaded) return;
+    if (!supabase) {
+      set({ items: loadLocal<Note[]>('notes', []), loaded: true });
+      return;
+    }
+    const sb = supabase;
+    const load = async () => {
+      const { data } = await sb.from('notes').select('*').order('created_at', { ascending: false }).limit(NOTES_LIMIT);
+      set({ items: (data as Note[]) ?? [], loaded: true });
+    };
+    await load();
+    const channel = sb
+      .channel('notes-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => void load())
+      .subscribe();
+    set({ channel });
+  },
+
+  async add(n) {
+    if (!supabase) {
+      const next = [{ ...n, id: makeId(), created_at: new Date().toISOString() }, ...get().items];
+      set({ items: next });
+      saveLocal('notes', next);
+      return;
+    }
+    const { error } = await supabase.from('notes').insert(n);
+    if (error) throw new Error(error.message);
+  },
+
+  async remove(id) {
+    if (!supabase) {
+      const next = get().items.filter((x) => x.id !== id);
+      set({ items: next });
+      saveLocal('notes', next);
+      return;
+    }
+    await supabase.from('notes').delete().eq('id', id);
+  },
+}));
+
 // ---- Bootstrap helper ----
 
 export function useBootstrapStores() {
@@ -638,6 +699,7 @@ export function useBootstrapStores() {
   const initMeals = useMealsStore((s) => s.init);
   const initSettings = useSettingsStore((s) => s.init);
   const initContacts = useContactsStore((s) => s.init);
+  const initNotes = useNotesStore((s) => s.init);
 
   useEffect(() => {
     void initMembers();
@@ -648,6 +710,7 @@ export function useBootstrapStores() {
     void initMeals();
     void initSettings();
     void initContacts();
+    void initNotes();
   }, [
     initMembers,
     initEvents,
@@ -657,6 +720,7 @@ export function useBootstrapStores() {
     initMeals,
     initSettings,
     initContacts,
+    initNotes,
   ]);
 }
 

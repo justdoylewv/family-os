@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Wifi, PhoneCall, Zap, ShieldAlert, Lock, Unlock, Plus, Trash2 } from 'lucide-react';
+import { Wifi, PhoneCall, Zap, ShieldAlert, Lock, Unlock, Plus, Trash2, Images } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useAdminGate } from '../lib/admin';
 import { useContactsStore, useSettingsStore } from '../lib/db';
@@ -192,6 +192,8 @@ const InfoHub: React.FC = () => {
         </div>
       </div>
 
+      <PhotoSettings isAdmin={admin.isAdmin} />
+
       <div className="flex justify-center pt-8 text-gray-600 text-sm font-medium">
         <Zap size={16} className="inline mr-2" />
         Family OS {__APP_VERSION__}
@@ -199,6 +201,65 @@ const InfoHub: React.FC = () => {
           <span className="ml-2 text-gray-700">• {__APP_COMMIT__.slice(0, 7)}</span>
         )}
       </div>
+    </div>
+  );
+};
+
+/** Idle slideshow settings: the shared Google Photos album and how long before it starts. */
+const PhotoSettings: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
+  const album = useSettingsStore((s) => s.values.photos_album_url ?? '');
+  const idle = useSettingsStore((s) => s.values.idle_minutes ?? '3');
+  const setSetting = useSettingsStore((s) => s.set);
+  const [draft, setDraft] = useState(album);
+  useEffect(() => setDraft(album), [album]);
+
+  return (
+    <div className="glass rounded-3xl p-8 border border-white/5">
+      <div className="flex items-center gap-3 mb-2">
+        <Images size={28} className="text-pink-400" />
+        <h3 className="text-2xl font-bold">Photo slideshow</h3>
+      </div>
+      <p className="text-gray-400 mb-6">
+        When nobody has touched the screen for a while, family photos rotate full screen with the clock and what’s next.
+      </p>
+      {isAdmin ? (
+        <div className="space-y-4">
+          <label className="block">
+            <span className="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Shared Google Photos album link</span>
+            <div className="flex gap-3">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="https://photos.app.goo.gl/…"
+                className="flex-1 min-w-0 bg-white/10 rounded-2xl p-4 outline-none border border-white/10 focus:border-pink-400"
+              />
+              <button onClick={() => void setSetting('photos_album_url', draft.trim())} className="px-5 rounded-2xl bg-pink-600 hover:bg-pink-500 font-bold">
+                Save
+              </button>
+            </div>
+            <span className="block text-sm text-gray-500 mt-2">In Google Photos: open the album → Share → Create link. Anyone with the link can view the album.</span>
+          </label>
+          <label className="block">
+            <span className="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Start after</span>
+            <select
+              value={idle}
+              onChange={(e) => void setSetting('idle_minutes', e.target.value)}
+              className="bg-neutral-900 rounded-2xl p-4 outline-none border border-white/10 text-gray-300"
+            >
+              {['1', '3', '5', '10', '30', '0'].map((m) => (
+                <option key={m} value={m}>
+                  {m === '0' ? 'Never (Photos button only)' : `${m} minute${m === '1' ? '' : 's'} untouched`}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : (
+        <p className="text-lg">
+          {album ? 'Album connected.' : 'No album yet.'} Starts after {idle === '0' ? 'never (Photos button only)' : `${idle} min untouched`}.{' '}
+          <span className="text-gray-500">Enter Admin Mode to change.</span>
+        </p>
+      )}
     </div>
   );
 };

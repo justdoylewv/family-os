@@ -69,6 +69,16 @@ export interface Contact {
   sort_order?: number;
 }
 
-export type View = 'dashboard' | 'calendar' | 'groceries' | 'meals' | 'info' | 'chores' | 'members';
+export interface Note {
+  id: string;
+  kind: 'note' | 'doodle';
+  text: string;
+  color: string;
+  image?: string | null;
+  member_id?: string | null;
+  created_at?: string;
+}
+
+export type View = 'dashboard' | 'calendar' | 'groceries' | 'meals' | 'info' | 'chores' | 'members' | 'board';
 
 export type CalendarViewMode = 'day' | 'week' | 'month';

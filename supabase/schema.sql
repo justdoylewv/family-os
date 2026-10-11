@@ -88,6 +88,16 @@ create table if not exists info_contacts (
   created_at timestamptz not null default now()
 );
 
+create table if not exists notes (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null default 'note',
+  text text not null default '',
+  color text not null default 'yellow',
+  image text,
+  member_id uuid references members(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 -- Row-level security: lock every table to authenticated requests.
 alter table members        enable row level security;
 alter table events         enable row level security;
@@ -97,12 +107,13 @@ alter table rewards        enable row level security;
 alter table meals          enable row level security;
 alter table settings       enable row level security;
 alter table info_contacts  enable row level security;
+alter table notes          enable row level security;
 
 do $$
 declare t text;
 begin
   for t in select unnest(array[
-    'members','events','groceries','chores','rewards','meals','settings','info_contacts'
+    'members','events','groceries','chores','rewards','meals','settings','info_contacts','notes'
   ]) loop
     execute format('drop policy if exists "family rw" on %I', t);
     execute format('create policy "family rw" on %I for all to authenticated using (true) with check (true)', t);
@@ -116,4 +127,4 @@ on conflict (day) do nothing;
 
 -- Realtime: publish change events so the kitchen/living-room tablets stay in sync.
 alter publication supabase_realtime add table
-  members, events, groceries, chores, rewards, meals, settings, info_contacts;
+  members, events, groceries, chores, rewards, meals, settings, info_contacts, notes;
