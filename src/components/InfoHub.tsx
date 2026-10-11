@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Wifi, PhoneCall, Zap, ShieldAlert, Lock, Unlock, Plus, Trash2, Images } from 'lucide-react';
+import { Wifi, PhoneCall, Zap, ShieldAlert, Lock, Unlock, Plus, Trash2, Images, CloudSun } from 'lucide-react';
+import { findPlace } from '../lib/weather';
 import QRCode from 'qrcode';
 import { useAdminGate } from '../lib/admin';
 import { useContactsStore, useSettingsStore } from '../lib/db';
@@ -192,6 +193,7 @@ const InfoHub: React.FC = () => {
         </div>
       </div>
 
+      <WeatherSettings isAdmin={admin.isAdmin} />
       <PhotoSettings isAdmin={admin.isAdmin} />
 
       <div className="flex justify-center pt-8 text-gray-600 text-sm font-medium">
@@ -201,6 +203,58 @@ const InfoHub: React.FC = () => {
           <span className="ml-2 text-gray-700">• {__APP_COMMIT__.slice(0, 7)}</span>
         )}
       </div>
+    </div>
+  );
+};
+
+/** The town the Home weather tile follows. */
+const WeatherSettings: React.FC<{ isAdmin: boolean }> = ({ isAdmin }) => {
+  const town = useSettingsStore((s) => s.values.weather_location ?? '');
+  const setSetting = useSettingsStore((s) => s.set);
+  const [draft, setDraft] = useState(town);
+  const [msg, setMsg] = useState('');
+  useEffect(() => setDraft(town), [town]);
+  const save = async () => {
+    const q = draft.trim();
+    if (q) {
+      const place = await findPlace(q).catch(() => null);
+      if (!place) {
+        setMsg('Couldn’t find that town. Try “Columbus, OH”.');
+        return;
+      }
+      setMsg(`Showing weather for ${place.name}.`);
+    } else {
+      setMsg('Using this tablet’s location.');
+    }
+    await setSetting('weather_location', q);
+  };
+  return (
+    <div className="glass rounded-3xl p-8 border border-white/5">
+      <div className="flex items-center gap-3 mb-2">
+        <CloudSun size={28} className="text-sky-400" />
+        <h3 className="text-2xl font-bold">Weather</h3>
+      </div>
+      {isAdmin ? (
+        <>
+          <p className="text-gray-400 mb-4">The town the Home screen shows. Leave it blank to use this tablet’s location.</p>
+          <div className="flex gap-3">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Columbus, OH"
+              className="flex-1 min-w-0 bg-white/10 rounded-2xl p-4 outline-none border border-white/10 focus:border-sky-400"
+            />
+            <button onClick={() => void save()} className="px-5 rounded-2xl bg-sky-600 hover:bg-sky-500 font-bold">
+              Save
+            </button>
+          </div>
+          {msg && <p className="text-sm text-gray-400 mt-2">{msg}</p>}
+        </>
+      ) : (
+        <p className="text-lg">
+          {town ? `Showing ${town}.` : 'Using this tablet’s location.'} <span className="text-gray-500">Enter Admin Mode to change.</span>
+        </p>
+      )}
     </div>
   );
 };
