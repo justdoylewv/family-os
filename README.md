@@ -154,3 +154,10 @@ and renewal emails and flags new subscriptions and price increases.
 
 Paste [`supabase/upgrade-2026-10.sql`](supabase/upgrade-2026-10.sql) into Supabase → SQL editor → Run.
 It contains the three migrations in `supabase/migrations/` and is safe to run more than once.
+
+## Weather
+
+The Home screen shows live weather from [Open-Meteo](https://open-meteo.com) (free, no API key):
+current temperature and conditions, today's high/low and rain chance, and the next three days.
+Set the town in **Info Hub → Admin Mode → Weather** (e.g. "Columbus, OH"); left blank, it uses the
+tablet's location if allowed. Refreshes every 30 minutes.
