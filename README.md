@@ -62,6 +62,8 @@ Vercel project for production:
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only. From Supabase API settings. |
 | `GEMINI_API_KEY` | From AI Studio |
 | `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` | From Cloud Console |
+| `ANTHROPIC_API_KEY` | Server-only. Claude API key for the fridge photo scan (console.anthropic.com) |
+| `SHORTCUT_TOKEN` | Server-only. Any long random string; the Siri shortcut sends it |
 
 ### 4. Deploy
 
@@ -94,3 +96,15 @@ After the web app is live, on the tablet:
    app so kids can't browse away.
 
 A native iPad/Mac app build comes in a later phase using Tauri or Capacitor.
+
+## Groceries: voice, fridge scan, Siri
+
+- **Type or say several items at once:** "milk, eggs and mac and cheese" becomes three items, each
+  filed under its aisle automatically. Items already on the list are skipped; pantry items move back.
+- **Buy again:** things in the pantry show as one-tap chips under the add bar.
+- **Scan fridge:** take a photo; Claude compares it with the list and the pantry, then suggests
+  what to add and what's already stocked. Nothing changes until you tap **Update list**.
+  Needs `ANTHROPIC_API_KEY`.
+- **"Hey Siri, add groceries"** (each iPhone): Shortcuts app → new shortcut "Add groceries" →
+  **Dictate Text** → **Get Contents of URL** (`https://<your-app>/api/add-groceries`, POST,
+  JSON body: `token` = your `SHORTCUT_TOKEN`, `text` = Dictated Text) → **Speak Text** (Contents of URL).
