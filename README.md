@@ -150,8 +150,7 @@ Logins and passwords belong in a family password manager (1Password Families, Bi
 Next step once the family email exists: a daily inbox reader that fills this register from receipts
 and renewal emails and flags new subscriptions and price increases.
 
-## Database changes to run (in order)
+## Database changes to run
 
-1. `supabase/migrations/20261011_google_calendar_sync.sql`
-2. `supabase/migrations/20261011_message_board.sql`
-3. `supabase/migrations/20261011_bills.sql`
+Paste [`supabase/upgrade-2026-10.sql`](supabase/upgrade-2026-10.sql) into Supabase → SQL editor → Run.
+It contains the three migrations in `supabase/migrations/` and is safe to run more than once.

@@ -18,4 +18,8 @@ create table if not exists bills (
 alter table bills enable row level security;
 drop policy if exists "family rw" on bills;
 create policy "family rw" on bills for all to authenticated using (true) with check (true);
-alter publication supabase_realtime add table bills;
+do $$ begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'bills') then
+    alter publication supabase_realtime add table bills;
+  end if;
+end $$;

@@ -11,4 +11,8 @@ create table if not exists notes (
 alter table notes enable row level security;
 drop policy if exists "family rw" on notes;
 create policy "family rw" on notes for all to authenticated using (true) with check (true);
-alter publication supabase_realtime add table notes;
+do $$ begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'notes') then
+    alter publication supabase_realtime add table notes;
+  end if;
+end $$;
